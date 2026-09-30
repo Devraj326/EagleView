@@ -76,8 +76,11 @@ export function DashboardPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <NavBar />
-      <div className="container" style={{ flex: 1, display: "flex", gap: 24, paddingTop: 24, paddingBottom: 24 }}>
-        <aside style={{ width: 240, flexShrink: 0 }}>
+      <div
+        className="container dashboard-layout"
+        style={{ flex: 1, display: "flex", gap: 24, paddingTop: 24, paddingBottom: 24 }}
+      >
+        <aside className="dashboard-sidebar" style={{ width: 240, flexShrink: 0 }}>
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
             <h3 style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>MY DOMAINS</h3>
             <Link to="/onboarding" className="btn-ghost btn" style={{ padding: "2px 8px", fontSize: 12 }}>

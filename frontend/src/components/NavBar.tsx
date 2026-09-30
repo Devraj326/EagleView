@@ -18,13 +18,13 @@ export function NavBar() {
         borderBottom: "1px solid var(--border)",
       }}
     >
-      <div className="container row" style={{ height: 56, justifyContent: "space-between" }}>
-        <Link to="/" className="row" style={{ gap: 8, color: "var(--text)" }}>
+      <div className="container row navbar-row" style={{ minHeight: 56, padding: "10px 0", justifyContent: "space-between" }}>
+        <Link to="/" className="row navbar-brand" style={{ gap: 8, color: "var(--text)", flexShrink: 0 }}>
           <Logo size={26} />
-          <strong style={{ fontSize: 15, letterSpacing: "-0.01em" }}>DataMind</strong>
+          <strong style={{ fontSize: 15, letterSpacing: "-0.01em" }}>EgleView</strong>
         </Link>
 
-        <nav className="row" style={{ gap: 4 }}>
+        <nav className="row navbar-links" style={{ gap: 4 }}>
           <Link
             to="/onboarding"
             className="btn btn-ghost"
@@ -45,7 +45,7 @@ export function NavBar() {
           </Link>
         </nav>
 
-        <div className="row" style={{ gap: 10 }}>
+        <div className="row navbar-actions" style={{ gap: 10, flexShrink: 0 }}>
           {user?.picture ? (
             <img
               src={user.picture}

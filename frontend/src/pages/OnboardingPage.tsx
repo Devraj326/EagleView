@@ -1,4 +1,4 @@
-import { Check, UploadCloud, Zap } from "lucide-react";
+import { Bot, Check, ScrollText, UploadCloud, Zap } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { NavBar } from "../components/NavBar";
@@ -319,7 +319,10 @@ export function AgentLogPanel({ log, onClear }: { log: string[]; onClear: () => 
   return (
     <details className="card" style={{ marginTop: 28, padding: "12px 18px" }}>
       <summary style={{ cursor: "pointer", fontWeight: 560, fontSize: 13.5 }}>
-        🔍 Agent activity log ({log.length})
+        <span className="row" style={{ display: "inline-flex", gap: 8, verticalAlign: "middle" }}>
+          <ScrollText size={15} color="var(--text-secondary)" />
+          Agent activity log ({log.length})
+        </span>
       </summary>
       <pre
         className="scroll-thin"
@@ -588,7 +591,8 @@ function ReviewStep({
           className="row"
           style={{ gap: 8, marginTop: 14, padding: "10px 14px", background: "var(--accent-soft)", borderRadius: 10 }}
         >
-          <span style={{ fontSize: 13 }}>🤖 {current.agent_note}</span>
+          <Bot size={15} color="var(--accent)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 13 }}>{current.agent_note}</span>
         </div>
       )}
 
