@@ -1,13 +1,14 @@
 import type {
   AnalyzeResponse,
   ConfirmResponse,
+  DomainColumn,
   DatasetListResponse,
   DemoSeedResult,
   QueryResponse,
   User,
 } from "./types";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE = (import.meta.env?.VITE_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
 const TOKEN_KEY = "auth_token";
 
 export function getToken(): string | null {
@@ -32,24 +33,31 @@ export class ApiError extends Error {
 
 async function request<T>(
   path: string,
-  options: RequestInit & { asForm?: boolean } = {}
+  options: RequestInit = {}
 ): Promise<T> {
   const token = getToken();
-  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
-  if (!options.asForm) {
-    headers["Content-Type"] = "application/json";
+  const headers = new Headers(options.headers);
+  if (typeof options.body === "string" && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (!res.ok) {
-    let detail = res.statusText;
+    let detail = res.statusText || `Request failed (${res.status})`;
     try {
       const body = await res.json();
-      detail = body.detail || detail;
+      if (typeof body.detail === "string" && body.detail) {
+        detail = body.detail;
+      } else if (Array.isArray(body.detail)) {
+        detail = body.detail
+          .map((issue: { msg?: unknown }) => issue && typeof issue.msg === "string" ? issue.msg : "")
+          .filter(Boolean)
+          .join("; ") || detail;
+      }
     } catch {
       // ignore non-JSON error bodies
     }
@@ -85,7 +93,7 @@ export const api = {
     form.append("file", file);
     return request<{ id: string; name: string; row_count: number; status: string }>(
       "/api/datasets/upload",
-      { method: "POST", body: form, asForm: true }
+      { method: "POST", body: form }
     );
   },
 
@@ -99,7 +107,12 @@ export const api = {
 
   confirmDataset: (
     id: string,
-    body: { domains: { domain_id: string; columns: unknown[] }[] }
+    body: {
+      domains: {
+        domain_id: string;
+        columns: Pick<DomainColumn, "id" | "target_column" | "target_type" | "nullable" | "include">[];
+      }[];
+    }
   ) =>
     request<ConfirmResponse>(`/api/datasets/${id}/confirm`, {
       method: "POST",

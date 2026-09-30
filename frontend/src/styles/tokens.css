@@ -1,118 +1,41 @@
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue",
-    Arial, sans-serif;
-  --font-mono: "SF Mono", ui-monospace, "Menlo", monospace;
-
-  --bg: #f5f5f7;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", Consolas, "Liberation Mono", monospace;
+  --bg: #f7f8fa;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-sunken: #fbfbfd;
-  --text: #1d1d1f;
-  --text-secondary: #6e6e73;
-  --text-tertiary: #86868b;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.14);
-  --accent: #0071e3;
-  --accent-hover: #0077ed;
-  --accent-active: #005bbf;
-  --accent-soft: rgba(0, 113, 227, 0.1);
-  --success: #1ea34d;
-  --success-soft: rgba(30, 163, 77, 0.12);
-  --warning: #b26b00;
-  --warning-soft: rgba(255, 149, 0, 0.14);
-  --danger: #d70015;
-  --danger-soft: rgba(255, 59, 48, 0.1);
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-pill: 980px;
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10);
-  --shadow-focus: 0 0 0 4px rgba(0, 113, 227, 0.18);
-
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --nav-blur: saturate(180%) blur(20px);
-
-  /* chart palette (light) - see dataviz skill reference palette */
-  --chart-series-1: #2a78d6;
-  --chart-series-2: #eb6834;
-  --chart-series-3: #1baf7a;
-  --chart-series-4: #eda100;
-  --chart-series-5: #e87ba4;
-  --chart-series-6: #4a3aa7;
-  --chart-grid: #e1e0d9;
-  --chart-axis: #c3c2b7;
-  --chart-muted: #898781;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #000000;
-    --surface: #1c1c1e;
-    --surface-raised: #2c2c2e;
-    --surface-sunken: #161617;
-    --text: #f5f5f7;
-    --text-secondary: #98989d;
-    --text-tertiary: #7c7c80;
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.16);
-    --accent: #0a84ff;
-    --accent-hover: #379aff;
-    --accent-active: #086cd9;
-    --accent-soft: rgba(10, 132, 255, 0.16);
-    --success: #32d74b;
-    --success-soft: rgba(50, 215, 75, 0.14);
-    --warning: #ff9f0a;
-    --warning-soft: rgba(255, 159, 10, 0.16);
-    --danger: #ff453a;
-    --danger-soft: rgba(255, 69, 58, 0.14);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
-
-    --chart-series-1: #3987e5;
-    --chart-series-2: #d95926;
-    --chart-series-3: #199e70;
-    --chart-series-4: #c98500;
-    --chart-series-5: #d55181;
-    --chart-series-6: #9085e9;
-    --chart-grid: #2c2c2a;
-    --chart-axis: #383835;
-    --chart-muted: #898781;
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg: #000000;
-  --surface: #1c1c1e;
-  --surface-raised: #2c2c2e;
-  --surface-sunken: #161617;
-  --text: #f5f5f7;
-  --text-secondary: #98989d;
-  --text-tertiary: #7c7c80;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --accent: #0a84ff;
-  --accent-hover: #379aff;
-  --accent-active: #086cd9;
-  --accent-soft: rgba(10, 132, 255, 0.16);
-  --success: #32d74b;
-  --success-soft: rgba(50, 215, 75, 0.14);
-  --warning: #ff9f0a;
-  --warning-soft: rgba(255, 159, 10, 0.16);
-  --danger: #ff453a;
-  --danger-soft: rgba(255, 69, 58, 0.14);
-
-  --chart-series-1: #3987e5;
-  --chart-series-2: #d95926;
-  --chart-series-3: #199e70;
-  --chart-series-4: #c98500;
-  --chart-series-5: #d55181;
-  --chart-series-6: #9085e9;
-  --chart-grid: #2c2c2a;
-  --chart-axis: #383835;
-  --chart-muted: #898781;
+  --surface-sunken: #f1f4f8;
+  --text: #132540;
+  --text-secondary: #3f5370;
+  --text-tertiary: #50647f;
+  --border: #dce3ed;
+  --border-strong: #bdcadb;
+  --accent: #1d58bf;
+  --accent-hover: #1953b7;
+  --accent-active: #17489a;
+  --accent-soft: #e8f0ff;
+  --success: #316843;
+  --success-soft: #eaf2e9;
+  --warning: #825900;
+  --warning-soft: #f7eed8;
+  --danger: #b13d35;
+  --danger-soft: #f9eeeb;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 4px;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-focus: 0 0 0 3px #2463ce24;
+  --ease: ease;
+  --chart-series-1: #2463ce;
+  --chart-series-2: #699ade;
+  --chart-series-3: #279ba3;
+  --chart-series-4: #7582b8;
+  --chart-series-5: #b7835b;
+  --chart-series-6: #7c8ca5;
+  --chart-grid: #e0e9f5;
+  --chart-axis: #c8d7eb;
+  --chart-muted: #3f5370;
 }

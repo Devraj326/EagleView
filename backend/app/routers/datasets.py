@@ -84,7 +84,7 @@ async def upload_dataset(file: UploadFile, user: User = Depends(get_current_user
 
 
 @router.post("/seed-demo")
-def seed_demo(user: User = Depends(get_current_user)) -> dict:
+def seed_demo_endpoint(user: User = Depends(get_current_user)) -> dict:
     session, ctx = snowpark_service.ready_context(user)
     with capture() as entries:
         results = demo_seed.seed_demo_datasets(session, ctx)

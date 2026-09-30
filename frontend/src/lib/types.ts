@@ -57,10 +57,8 @@ export interface QueryResponse {
 
 export interface DemoSeedResult {
   name: string;
-  filename: string;
   status: string;
   error: string | null;
-  dataset_id: string | null;
 }
 
 export interface DomainColumn extends ColumnMapping {

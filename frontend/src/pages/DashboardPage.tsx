@@ -5,7 +5,7 @@ import { ResultView } from "../components/ResultView";
 import { Spinner } from "../components/Spinner";
 import { ApiError, api } from "../lib/api";
 import type { ChatTurn, ReadyDomain } from "../lib/types";
-import { AgentLogPanel } from "./OnboardingPage";
+import { AgentLogPanel } from "../components/AgentLogPanel";
 
 const SUGGESTIONS = [
   "What was our total revenue last month?",
@@ -13,12 +13,6 @@ const SUGGESTIONS = [
   "Show me the top 10 customers by spending.",
   "Which deliveries were delayed?",
 ];
-
-let turnCounter = 0;
-function nextId() {
-  turnCounter += 1;
-  return `turn_${turnCounter}_${Date.now()}`;
-}
 
 export function DashboardPage() {
   const [domains, setDomains] = useState<ReadyDomain[]>([]);
@@ -37,7 +31,7 @@ export function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }, [turns]);
 
   async function submit(q: string) {
@@ -46,10 +40,10 @@ export function DashboardPage() {
 
     setQuestion("");
     setAsking(true);
-    const pendingId = nextId();
+    const pendingId = crypto.randomUUID();
     setTurns((prev) => [
       ...prev,
-      { id: nextId(), role: "user", question },
+      { id: crypto.randomUUID(), role: "user", question },
       { id: pendingId, role: "assistant", pending: true },
     ]);
 
@@ -76,10 +70,10 @@ export function DashboardPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <NavBar />
-      <div className="container" style={{ flex: 1, display: "flex", gap: 24, paddingTop: 24, paddingBottom: 24 }}>
-        <aside style={{ width: 240, flexShrink: 0 }}>
+      <div className="container dashboard-layout" style={{ flex: 1, display: "flex", gap: 24, paddingTop: 24, paddingBottom: 24 }}>
+        <aside className="domain-sidebar">
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>MY DOMAINS</h3>
+            <h2 style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>YOUR DATA</h2>
             <Link to="/onboarding" className="btn-ghost btn" style={{ padding: "2px 8px", fontSize: 12 }}>
               + Add
             </Link>
@@ -88,7 +82,7 @@ export function DashboardPage() {
             <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
               No data ready yet.{" "}
               <Link to="/onboarding" style={{ color: "var(--accent)" }}>
-                Upload one
+                Upload a file
               </Link>
               .
             </p>
@@ -110,6 +104,7 @@ export function DashboardPage() {
               className="btn btn-secondary"
               style={{ width: "100%", marginTop: 20, fontSize: 13 }}
               onClick={newConversation}
+              disabled={asking}
             >
               New conversation
             </button>
@@ -120,17 +115,16 @@ export function DashboardPage() {
           </div>
         </aside>
 
-        <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <main className="analysis-main" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <div className="analysis-heading"><h1>Analysis</h1></div>
           <div ref={scrollRef} className="scroll-thin stack" style={{ flex: 1, gap: 18, overflowY: "auto", paddingBottom: 8 }}>
             {turns.length === 0 && (
-              <div className="card fade-in-up" style={{ padding: 32 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 620 }}>Ask your data anything</h2>
+              <div className="card analysis-empty">
+                <h2>Ask about your data</h2>
                 <p style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 6 }}>
-                  Ask analytical questions, or investigate a specific order, customer, product, or shipment
-                  — in plain English. Each question is dispatched to the domain agent(s) that own the
-                  relevant data.
+                  Write a question below, or try one of these examples.
                 </p>
-                <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 16 }}>
+                <div className="question-suggestions">
                   {SUGGESTIONS.map((s) => (
                     <button key={s} className="btn btn-secondary" style={{ fontSize: 13 }} onClick={() => submit(s)}>
                       {s}
@@ -167,7 +161,7 @@ export function DashboardPage() {
                       <div className="row" style={{ gap: 10 }}>
                         <Spinner size={16} />
                         <span style={{ fontSize: 13.5, color: "var(--text-secondary)" }}>
-                          Consulting the relevant domain agent(s)… this can take a couple of minutes.
+                          Checking your data… this can take a couple of minutes.
                         </span>
                       </div>
                     )}
@@ -184,21 +178,23 @@ export function DashboardPage() {
               e.preventDefault();
               submit(question);
             }}
-            className="row"
+            className="row question-form"
             style={{ gap: 10, marginTop: 16 }}
           >
             <input
               className="input"
-              placeholder="Ask about your data…"
+              placeholder="Ask a question about your business data…"
+              aria-label="Question about your business data"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               disabled={asking}
               style={{ padding: "13px 16px", fontSize: 14.5 }}
             />
             <button className="btn btn-primary" type="submit" disabled={asking || !question.trim()}>
-              {asking ? <Spinner size={14} color="white" /> : "Ask"}
+              {asking ? <Spinner size={14} color="white" /> : "Ask question"}
             </button>
           </form>
+          <p className="form-note">Answers are based on the data in your workspace. Review results before making decisions.</p>
         </main>
       </div>
     </div>

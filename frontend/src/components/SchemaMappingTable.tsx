@@ -1,4 +1,4 @@
-import type { ColumnMapping } from "../lib/types";
+import type { DomainColumn } from "../lib/types";
 
 const TYPE_OPTIONS = ["VARCHAR", "INTEGER", "FLOAT", "NUMBER(18,2)", "BOOLEAN", "DATE", "TIMESTAMP_NTZ"];
 
@@ -12,10 +12,10 @@ export function SchemaMappingTable({
   columns,
   onChange,
 }: {
-  columns: ColumnMapping[];
-  onChange: (columns: ColumnMapping[]) => void;
+  columns: DomainColumn[];
+  onChange: (columns: DomainColumn[]) => void;
 }) {
-  function update(id: string, patch: Partial<ColumnMapping>) {
+  function update(id: string, patch: Partial<DomainColumn>) {
     onChange(
       columns.map((c) => (c.id === id ? { ...c, ...patch, source: "USER_MODIFIED" as const } : c))
     );
@@ -62,6 +62,7 @@ export function SchemaMappingTable({
                 <input
                   className="input"
                   style={{ padding: "6px 10px", minWidth: 140 }}
+                  aria-label={`Target column for ${col.source_column}`}
                   value={col.target_column}
                   disabled={!col.include}
                   onChange={(e) => update(col.id, { target_column: e.target.value })}
@@ -71,6 +72,7 @@ export function SchemaMappingTable({
                 <select
                   className="select"
                   style={{ padding: "6px 8px", minWidth: 120 }}
+                  aria-label={`Data type for ${col.source_column}`}
                   value={col.target_type}
                   disabled={!col.include}
                   onChange={(e) => update(col.id, { target_type: e.target.value })}
@@ -85,6 +87,7 @@ export function SchemaMappingTable({
               <td style={{ padding: "10px", textAlign: "center" }}>
                 <input
                   type="checkbox"
+                  aria-label={`Nullable ${col.source_column}`}
                   checked={col.nullable}
                   disabled={!col.include}
                   onChange={(e) => update(col.id, { nullable: e.target.checked })}
@@ -120,6 +123,7 @@ export function SchemaMappingTable({
               <td style={{ padding: "10px", textAlign: "center" }}>
                 <input
                   type="checkbox"
+                  aria-label={`Include ${col.source_column}`}
                   checked={col.include}
                   onChange={(e) => update(col.id, { include: e.target.checked })}
                 />

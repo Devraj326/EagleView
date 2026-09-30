@@ -1,6 +1,7 @@
-import { Check, UploadCloud, Zap } from "lucide-react";
+import { Check, UploadCloud, Database, ArrowRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AgentLogPanel } from "../components/AgentLogPanel";
 import { NavBar } from "../components/NavBar";
 import { SchemaMappingTable } from "../components/SchemaMappingTable";
 import { Spinner } from "../components/Spinner";
@@ -11,9 +12,9 @@ type Phase = "idle" | "uploading" | "analyzing" | "review" | "confirming" | "suc
 
 const STEPS: { key: Phase; label: string }[] = [
   { key: "idle", label: "Upload" },
-  { key: "analyzing", label: "Orchestrator + agents" },
+  { key: "analyzing", label: "Analyze" },
   { key: "review", label: "Review mapping" },
-  { key: "confirming", label: "Merge tables" },
+  { key: "confirming", label: "Confirm" },
   { key: "success", label: "Ready" },
 ];
 
@@ -57,6 +58,13 @@ export function OnboardingPage() {
     refreshDatasets();
   }, [refreshDatasets]);
 
+  const processingData = datasetHistory.some((d) => d.status === "ANALYZING" || d.status === "LOADING");
+  useEffect(() => {
+    if (!seedingDemo && !processingData) return;
+    const timer = window.setInterval(refreshDatasets, 10000);
+    return () => window.clearInterval(timer);
+  }, [seedingDemo, processingData, refreshDatasets]);
+
   async function runAnalysis(datasetId: string) {
     setPhase("analyzing");
     setErrorMsg("");
@@ -99,10 +107,8 @@ export function OnboardingPage() {
       setSeedResults([
         {
           name: "Demo seed",
-          filename: "",
           status: "FAILED",
           error: e instanceof ApiError ? e.message : "Failed to seed demo data",
-          dataset_id: null,
         },
       ]);
     } finally {
@@ -164,18 +170,21 @@ export function OnboardingPage() {
 
   const inProgress = datasetHistory.filter((d) => d.status !== "READY" && d.status !== "FAILED");
   const ready = datasetHistory.filter((d) => d.status === "READY");
+  const failed = datasetHistory.filter((d) => d.status === "FAILED");
 
   return (
     <div style={{ minHeight: "100vh" }}>
       <NavBar />
       <div className="container" style={{ paddingTop: 32, paddingBottom: 64 }}>
-        <h1 style={{ fontSize: 30, fontWeight: 650, letterSpacing: "-0.02em" }}>Onboard your data</h1>
-        <p style={{ color: "var(--text-secondary)", marginTop: 6 }}>
-          Upload raw business data — CSV, Excel, or JSON. The Orchestrator Agent decides which business
-          domain(s) it belongs to and can split one file across several domain agents.
-        </p>
-
-        <Stepper phase={phase} />
+        <div className="page-heading">
+          <div>
+            <h1>Your data</h1>
+            <p>Upload a file and review its structure before adding it to your workspace.</p>
+          </div>
+          <button className="btn btn-secondary" onClick={() => navigate("/dashboard")}>Open analysis <ArrowRight size={15} /></button>
+        </div>
+        <div className="workspace-content">
+        {phase !== "idle" && <Stepper phase={phase} />}
 
         <div style={{ marginTop: 28 }}>
           {(phase === "idle" || phase === "uploading") && (
@@ -189,17 +198,17 @@ export function OnboardingPage() {
           )}
 
           {phase === "idle" && (
-            <DemoSeedCard seeding={seedingDemo} results={seedResults} onSeed={runSeedDemo} />
+            <DemoSeedCard seeding={seedingDemo || processingData} results={seedResults} onSeed={runSeedDemo} />
           )}
 
           {phase === "analyzing" && (
             <div className="card fade-in-up" style={{ padding: 48, textAlign: "center" }}>
               <Spinner size={30} />
               <p style={{ marginTop: 16, fontWeight: 560 }}>
-                Orchestrator Agent is routing your data to domain agents…
+                Analyzing your file…
               </p>
               <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 4 }}>
-                Splitting columns across domains, then each agent proposes its own schema.
+                Identifying the data and preparing column mappings for your review.
               </p>
             </div>
           )}
@@ -219,7 +228,7 @@ export function OnboardingPage() {
           {phase === "confirming" && (
             <div className="card fade-in-up" style={{ padding: 48, textAlign: "center" }}>
               <Spinner size={30} />
-              <p style={{ marginTop: 16, fontWeight: 560 }}>Domain agents are merging their tables…</p>
+              <p style={{ marginTop: 16, fontWeight: 560 }}>Adding your data…</p>
               <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 4 }}>
                 Each confirmed domain's table is created or extended, then loaded.
               </p>
@@ -277,20 +286,21 @@ export function OnboardingPage() {
           )}
         </div>
 
-        {(inProgress.length > 0 || ready.length > 0) && (
+        {(inProgress.length > 0 || ready.length > 0 || failed.length > 0) && (
           <div style={{ marginTop: 48 }}>
             {inProgress.length > 0 && (
-              <DatasetList title="In progress" datasets={inProgress} onSelect={resumeDataset} />
+              <DatasetList title="In progress" datasets={inProgress} onSelect={resumeDataset} disabled={seedingDemo || processingData} />
             )}
-            {ready.length > 0 && <DatasetList title="Uploads" datasets={ready} onSelect={resumeDataset} />}
+            {ready.length > 0 && <DatasetList title="Ready to use" datasets={ready} onSelect={resumeDataset} />}
+            {failed.length > 0 && <DatasetList title="Needs attention" datasets={failed} onSelect={resumeDataset} />}
           </div>
         )}
 
         {readyDomains.length > 0 && (
           <div style={{ marginTop: 28 }}>
-            <h3 style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 10 }}>
-              YOUR DOMAINS
-            </h3>
+            <h2 style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 10 }}>
+              DATA TABLES
+            </h2>
             <div className="stack" style={{ gap: 8 }}>
               {readyDomains.map((d) => (
                 <div
@@ -309,45 +319,18 @@ export function OnboardingPage() {
         )}
 
         <AgentLogPanel log={agentLog} onClear={() => setAgentLog([])} />
+        </div>
       </div>
     </div>
-  );
-}
-
-export function AgentLogPanel({ log, onClear }: { log: string[]; onClear: () => void }) {
-  if (log.length === 0) return null;
-  return (
-    <details className="card" style={{ marginTop: 28, padding: "12px 18px" }}>
-      <summary style={{ cursor: "pointer", fontWeight: 560, fontSize: 13.5 }}>
-        🔍 Agent activity log ({log.length})
-      </summary>
-      <pre
-        className="scroll-thin"
-        style={{
-          marginTop: 12,
-          fontSize: 12,
-          fontFamily: "var(--font-mono)",
-          color: "var(--text-secondary)",
-          whiteSpace: "pre-wrap",
-          maxHeight: 260,
-          overflowY: "auto",
-        }}
-      >
-        {log.join("\n")}
-      </pre>
-      <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={onClear}>
-        Clear log
-      </button>
-    </details>
   );
 }
 
 function Stepper({ phase }: { phase: Phase }) {
   const idx = stepIndex(phase);
   return (
-    <div className="row" style={{ gap: 0, marginTop: 24 }}>
+    <div className="row pipeline-stepper">
       {STEPS.map((step, i) => (
-        <div key={step.key} className="row" style={{ flex: i < STEPS.length - 1 ? 1 : "0 0 auto" }}>
+        <div key={step.key} className="row pipeline-step">
           <div className="row" style={{ gap: 8 }}>
             <span
               className="row"
@@ -409,7 +392,12 @@ function Dropzone({
 }) {
   return (
     <div
-      className="card fade-in-up"
+      className="card upload-dropzone"
+      role="button"
+      tabIndex={uploading ? -1 : 0}
+      aria-label="Upload a CSV, Excel or JSON file"
+      aria-disabled={uploading}
+      onKeyDown={(e) => { if (!uploading && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); fileInputRef.current?.click(); } }}
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
@@ -419,15 +407,14 @@ function Dropzone({
         e.preventDefault();
         setDragOver(false);
         const file = e.dataTransfer.files?.[0];
-        if (file) onFile(file);
+        if (file && !uploading) onFile(file);
       }}
       onClick={() => !uploading && fileInputRef.current?.click()}
       style={{
-        padding: 56,
         textAlign: "center",
         cursor: uploading ? "default" : "pointer",
         borderStyle: "dashed",
-        borderWidth: 2,
+        borderWidth: 1,
         borderColor: dragOver ? "var(--accent)" : "var(--border-strong)",
         background: dragOver ? "var(--accent-soft)" : "var(--surface)",
         transition: "border-color 0.15s var(--ease), background 0.15s var(--ease)",
@@ -440,7 +427,7 @@ function Dropzone({
         style={{ display: "none" }}
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) onFile(file);
+          if (file && !uploading) onFile(file);
           e.target.value = "";
         }}
       />
@@ -453,11 +440,12 @@ function Dropzone({
         <>
           <UploadCloud size={32} strokeWidth={1.5} color="var(--text-tertiary)" />
           <p style={{ marginTop: 12, fontWeight: 600, fontSize: 15 }}>
-            Drop a file here, or click to browse
+            Drop your file here
           </p>
           <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 4 }}>
-            CSV, Excel (.xlsx/.xls), or JSON
+            or select a file from your computer
           </p>
+          <div className="file-types"><span>CSV</span><span>XLSX / XLS</span><span>JSON</span></div>
         </>
       )}
     </div>
@@ -473,26 +461,24 @@ function DemoSeedCard({
   results: DemoSeedResult[] | null;
   onSeed: () => void;
 }) {
-  const allReady = results !== null && results.every((r) => r.status === "READY");
+  const allReady = results !== null && results.length > 0 && results.every((r) => r.status === "READY");
 
   return (
-    <div className="card fade-in-up" style={{ padding: "20px 24px", marginTop: 16 }}>
+    <div className="sample-data">
       <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div>
           <div className="row" style={{ gap: 8 }}>
-            <Zap size={16} color="var(--accent)" fill="var(--accent)" />
-            <strong style={{ fontSize: 14.5 }}>Seed demo data</strong>
-            <span className="pill pill-neutral">Testing</span>
+            <Database size={17} color="var(--accent)" />
+            <strong style={{ fontSize: 14.5 }}>Sample data</strong>
           </div>
           <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 4, maxWidth: 480 }}>
-            Loads a multi-domain demo dataset straight through the real Orchestrator + domain agent
-            pipeline. Skips manual review.
+            Customers, products, orders, payments and deliveries. Added automatically without manual review.
           </p>
         </div>
         <button className="btn btn-secondary" onClick={onSeed} disabled={seeding}>
           {seeding ? (
             <>
-              <Spinner size={14} /> Seeding…
+              <Spinner size={14} /> Loading samples…
             </>
           ) : (
             "Load demo datasets"
@@ -500,10 +486,11 @@ function DemoSeedCard({
         </button>
       </div>
 
+      {seeding && <p role="status" style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 14 }}>Preparing your data. This can take several minutes; progress updates below.</p>}
       {results && (
         <div className="stack" style={{ gap: 6, marginTop: 16 }}>
           {results.map((r) => (
-            <div key={r.filename || r.name} className="row" style={{ justifyContent: "space-between", fontSize: 13 }}>
+            <div key={r.name} className="row" style={{ justifyContent: "space-between", fontSize: 13 }}>
               <span>{r.name}</span>
               <div className="row" style={{ gap: 8 }}>
                 {r.error && <span style={{ color: "var(--danger)", fontSize: 12 }}>{r.error}</span>}
@@ -613,7 +600,7 @@ function ReviewStep({
 
       <SchemaMappingTable
         columns={currentColumns}
-        onChange={(cols) => setEditedColumns({ ...editedColumns, [current.domain_id]: cols as DomainColumn[] })}
+        onChange={(cols) => setEditedColumns({ ...editedColumns, [current.domain_id]: cols })}
       />
 
       <div className="row" style={{ justifyContent: "space-between", marginTop: 24 }}>
@@ -637,29 +624,33 @@ function DatasetList({
   title,
   datasets,
   onSelect,
+  disabled = false,
 }: {
   title: string;
   datasets: DatasetSummary[];
   onSelect: (d: DatasetSummary) => void;
+  disabled?: boolean;
 }) {
   return (
     <div style={{ marginBottom: 28 }}>
-      <h3 style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 10 }}>
+      <h2 style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 10 }}>
         {title.toUpperCase()}
-      </h3>
+      </h2>
       <div className="stack" style={{ gap: 8 }}>
         {datasets.map((d) => (
-          <div
+          <button
             key={d.id}
-            className="card card--interactive row"
+            type="button"
+            className="card card--interactive row dataset-list-item"
+            disabled={disabled}
             style={{ padding: "14px 18px", justifyContent: "space-between" }}
             onClick={() => onSelect(d)}
           >
-            <div style={{ fontWeight: 560, fontSize: 14 }}>{d.name}</div>
+            <span style={{ fontWeight: 500, fontSize: 14 }}>{d.name}<span style={{ display: "block", color: "var(--text-secondary)", fontSize: 12 }}>{d.row_count.toLocaleString()} {d.status === "READY" ? "rows loaded across tables" : "source rows"}</span></span>
             <span className={`pill ${d.status === "READY" ? "pill-success" : d.status === "FAILED" ? "pill-danger" : "pill-accent"}`}>
               {d.status}
             </span>
-          </div>
+          </button>
         ))}
       </div>
     </div>
