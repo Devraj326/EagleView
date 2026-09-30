@@ -1,0 +1,23 @@
+# Backend
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.db
+backend/storage/
+backend/.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Snowflake app
+snowflake_app/venv/
+snowflake_app/__pycache__/
+snowflake_app/**/__pycache__/
+
+# OS
+.DS_Store
+
+# Claude Code session state (not project config)
+.claude/scheduled_tasks.lock
