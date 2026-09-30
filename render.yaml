@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: egleview-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.14
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE_MINUTES
+        value: "1440"
+      - key: APP_DB_URL
+        value: sqlite:///./app_metadata.db
+      - key: CORS_ORIGINS
+        sync: false
+      - key: ALLOW_DEMO_LOGIN
+        value: "true"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: SNOWFLAKE_ACCOUNT
+        sync: false
+      - key: SNOWFLAKE_USER
+        sync: false
+      - key: SNOWFLAKE_PASSWORD
+        sync: false
+      - key: SNOWFLAKE_ROLE
+        value: SYSADMIN
+      - key: SNOWFLAKE_WAREHOUSE
+        value: COMPUTE_WH
+      - key: SNOWFLAKE_DATABASE
+        value: ANALYTICS_DB
+      - key: MAX_UPLOAD_MB
+        value: "25"
