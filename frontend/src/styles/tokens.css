@@ -1,5 +1,5 @@
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue",
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue",
     Arial, sans-serif;
   --font-mono: "SF Mono", ui-monospace, "Menlo", monospace;
 

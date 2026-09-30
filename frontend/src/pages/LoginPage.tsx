@@ -35,21 +35,22 @@ export function LoginPage() {
         justifyContent: "center",
         alignItems: "center",
         background:
-          "radial-gradient(1200px 600px at 50% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent), var(--bg)",
+          "radial-gradient(900px 480px at 50% -8%, color-mix(in srgb, var(--accent) 7%, transparent), transparent), var(--bg)",
+        padding: 20,
       }}
     >
       <div
         className="card fade-in-up"
-        style={{ width: 400, padding: "40px 36px", textAlign: "center" }}
+        style={{ width: 400, maxWidth: "100%", padding: "40px 36px", textAlign: "center" }}
       >
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-          <Logo size={56} />
+          <Logo size={44} />
         </div>
-        <h1 style={{ fontSize: 24, fontWeight: 640, letterSpacing: "-0.02em" }}>
-          Welcome to DataMind
+        <h1 style={{ fontSize: 22, fontWeight: 650, letterSpacing: "-0.02em" }}>
+          Sign in to EgleView
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 8, lineHeight: 1.5 }}>
-          Upload your business data, let AI understand it, and ask questions in plain English.
+          Upload business data, let domain agents organize it, and ask questions in plain English.
         </p>
 
         <div style={{ marginTop: 28, display: "flex", justifyContent: "center" }}>
