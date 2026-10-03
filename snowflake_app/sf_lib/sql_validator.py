@@ -1,5 +1,27 @@
 import re
 
+# Matches a single-quoted string literal, including Snowflake's doubled-quote
+# escape for a literal quote inside one ('it''s fine'). Stripped before the
+# forbidden-keyword scan so a legitimate value like 'DELETE_REQUESTED' in a
+# WHERE clause doesn't false-positive as the DELETE keyword.
+_STRING_LITERAL_RE = re.compile(r"'(?:[^']|'')*'")
+
+# A bare identifier (optionally quoted) immediately preceding `AS (` in a
+# WITH clause — i.e. a CTE name, which is legitimately unqualified and must
+# not be treated as a table reference requiring db.schema.table.
+_CTE_NAME_RE = re.compile(
+    r'(?:\bWITH\b|,)\s*(?:"([A-Za-z0-9_]+)"|([A-Za-z0-9_]+))\s*(?:\([^)]*\))?\s+AS\s*\(',
+    re.IGNORECASE,
+)
+
+# A FROM/JOIN clause's table reference: captures the dotted identifier chain
+# that follows, stopping before a `(` (subquery), `AS`/whitespace+alias, or
+# end of clause.
+_FROM_JOIN_REF_RE = re.compile(
+    r'\b(?:FROM|JOIN)\s+((?:"[A-Za-z0-9_]+"|[A-Za-z0-9_]+)(?:\s*\.\s*(?:"[A-Za-z0-9_]+"|[A-Za-z0-9_]+))*)',
+    re.IGNORECASE,
+)
+
 _FORBIDDEN_KEYWORDS = [
     "DROP",
     "DELETE",
@@ -37,6 +59,37 @@ def _strip_comments(sql: str) -> str:
     return sql
 
 
+def _unqualified_table_refs(stmt: str) -> list[str]:
+    """Returns every FROM/JOIN table reference that is NOT fully qualified as
+    db.schema.table (and isn't a CTE name or a subquery/table-function call).
+
+    The SQL generator is instructed to always fully-qualify every real table,
+    but that's a prompt instruction, not an enforced guarantee — the existing
+    qualified-reference check below only validates refs that already happen
+    to be 3-part; it never looks at whether a FROM/JOIN clause is qualified
+    at all. An unqualified reference would silently resolve against whatever
+    the session's own ambient default database/schema is at execution time
+    instead of being checked against the allowlist — this closes that gap.
+    """
+    cte_names = {(m.group(1) or m.group(2)).upper() for m in _CTE_NAME_RE.finditer(stmt)}
+
+    bad_refs = []
+    for match in _FROM_JOIN_REF_RE.finditer(stmt):
+        ref = match.group(1)
+        # Immediately followed by `(` (ignoring whitespace) -> a table
+        # function call or subquery alias (e.g. TABLE(FLATTEN(...)) or a
+        # derived table), not a plain table reference.
+        if stmt[match.end():].lstrip().startswith("("):
+            continue
+        parts = [p for p in re.split(r"\s*\.\s*", ref) if p]
+        bare_name = parts[0].strip('"').upper()
+        if len(parts) == 1 and bare_name in cte_names:
+            continue
+        if len(parts) < 3:
+            bad_refs.append(ref)
+    return bad_refs
+
+
 def validate_read_only_sql(
     sql: str, allowed_database: str, allowed_schema: str, allowed_tables: set[str] | None = None
 ) -> None:
@@ -57,9 +110,17 @@ def validate_read_only_sql(
     if not first_word or first_word.group(1).upper() not in ("SELECT", "WITH"):
         raise SqlValidationError("Only read-only SELECT/WITH queries are allowed")
 
-    forbidden = _FORBIDDEN_RE.search(stmt)
+    stmt_no_literals = _STRING_LITERAL_RE.sub("''", stmt)
+
+    forbidden = _FORBIDDEN_RE.search(stmt_no_literals)
     if forbidden:
         raise SqlValidationError(f"Disallowed keyword in query: {forbidden.group(1).upper()}")
+
+    unqualified = _unqualified_table_refs(stmt_no_literals)
+    if unqualified:
+        raise SqlValidationError(
+            f"Table reference(s) must be fully qualified as database.schema.table: {', '.join(unqualified)}"
+        )
 
     for match in _QUALIFIED_REF_RE.finditer(stmt):
         groups = [g for g in match.groups() if g]
