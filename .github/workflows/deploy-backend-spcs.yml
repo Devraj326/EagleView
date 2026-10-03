@@ -5,7 +5,8 @@ name: Build and push backend image to Snowflake SPCS
 # image repository EGLE_VIEW.PUBLIC.EGLEVIEW_REPO, so it can be run by
 # EGLEVIEW_BACKEND_POOL via Snowpark Container Services.
 #
-# Requires two repo secrets (Settings -> Secrets and variables -> Actions):
+# Requires two secrets in the "Production" environment (Settings -> Environments
+# -> Production -> Environment secrets):
 #   SNOWFLAKE_USER     - the Snowflake user to authenticate the registry push as
 #   SNOWFLAKE_PASSWORD - that user's password
 # Never commit these values - GitHub injects them at run time only.
@@ -26,6 +27,7 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    environment: Production
     steps:
       - uses: actions/checkout@v4
 
