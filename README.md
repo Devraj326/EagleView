@@ -27,6 +27,7 @@ EagleView creates a governed path from raw data to business meaning:
 - Primary-key-aware loading with `MERGE`; non-key data is appended.
 - Relationship discovery from approved foreign-key candidates and matching column names.
 - Seven specialized business agents plus a coordinating Orchestrator Agent, Query Understanding Agent, and Result Interpretation Agent.
+- MCP server integration for uploading data and asking governed natural-language questions from MCP clients.
 - Conversational query understanding for analytics, entity investigations, and clarification questions.
 - Parallel domain-agent investigation for entity questions such as an order or shipment story.
 - Read-only SQL validation, table allowlisting, conversation history, and result interpretation.
@@ -296,6 +297,86 @@ When a primary domain agent needs a fact that belongs exclusively to another dom
 - Fully qualified references must stay within the configured database, user schema, and allowlisted domain tables.
 - Primary agents can delegate to one `_SUB` agent, while sub-agents cannot delegate further. This structurally limits recursive delegation.
 
+## MCP Integration
+
+EagleView includes a lightweight [Model Context Protocol](https://modelcontextprotocol.io/) server in [`mcp_server/`](mcp_server/). It makes the existing governed FastAPI capabilities available to Claude Desktop, Claude Code, or another MCP-compatible client without duplicating the ingestion or query pipeline.
+
+The MCP server intentionally exposes exactly two tools:
+
+| Tool | Purpose |
+| --- | --- |
+| `upload_data(filename, content_base64)` | Uploads a CSV, Excel, or JSON file, sends it through the Orchestrator Agent and domain-agent classification, accepts the proposed mappings for this machine-to-machine workflow, and loads the confirmed data into the appropriate Snowflake domain tables. |
+| `ask_question(question, session_id=None)` | Sends a natural-language question through the existing query-understanding, multi-agent routing, read-only SQL validation, and result-interpretation pipeline. Pass the returned `session_id` to continue a conversation. |
+
+### MCP request flow
+
+```mermaid
+sequenceDiagram
+	participant C as MCP Client
+	participant M as EagleView MCP Server
+	participant A as FastAPI Backend
+	participant O as Orchestrator / Domain Agents
+	participant Q as Query Pipeline
+	participant SF as Snowflake
+
+	C->>M: upload_data(filename, base64)
+	M->>A: Validate JWT and POST /api/datasets/upload
+	M->>A: POST /analyze
+	A->>O: Route columns and classify domains
+	O->>SF: Merge approved domain schemas and load rows
+	SF-->>M: Dataset and domain status
+	M-->>C: dataset_id and loaded domains
+
+	C->>M: ask_question(question, session_id?)
+	M->>A: POST /api/query with Bearer token
+	A->>Q: Understand, route, query, validate, interpret
+	Q->>SF: Read-only domain queries
+	SF-->>Q: Results and evidence
+	Q-->>M: Answer, agents, entity, session_id
+	M-->>C: Governed answer
+```
+
+### Authentication and guardrails
+
+The MCP server does not create a separate user system and does not accept arbitrary credentials. Set `EGLEVIEW_API_TOKEN` to a real JWT issued by the backend’s `/api/auth/demo` or `/api/auth/google` endpoint. Before the first tool call, the server validates that token against `/api/auth/me`; each subsequent request uses that authenticated EgleView identity.
+
+The server also validates inputs before forwarding them:
+
+- `upload_data` accepts only `.csv`, `.xlsx`, `.xls`, and `.json` files.
+- Upload content must be valid base64, non-empty, and no larger than 25 MB.
+- `ask_question` rejects empty questions and questions longer than 2,000 characters.
+- The MCP layer is a thin proxy; SQL validation, table allowlisting, domain routing, conversation history, and missing-data behavior remain in the core backend pipeline.
+
+### Run the MCP server locally
+
+Start the FastAPI backend first, then install and run the MCP server:
+
+```bash
+cd mcp_server
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Set a real JWT returned by the backend login endpoint.
+export EGLEVIEW_API_TOKEN="<your-eagleview-jwt>"
+export EGLEVIEW_API_BASE_URL="http://localhost:8001"
+python server.py
+```
+
+On Windows PowerShell:
+
+```powershell
+cd mcp_server
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+$env:EGLEVIEW_API_TOKEN = "<your-eagleview-jwt>"
+$env:EGLEVIEW_API_BASE_URL = "http://localhost:8001"
+python server.py
+```
+
+The server uses stdio transport, so configure your MCP client to launch `mcp_server/server.py` with these two environment variables. See [mcp_server/README.md](mcp_server/README.md) for the token bootstrap example and client configuration notes.
+
 ## Demo Data
 
 The same five files are available in the repository root, `backend/demo_data/`, and `snowflake_app/demo_data/`:
@@ -461,6 +542,11 @@ EagleView/
 │   ├── app/                 API, auth, configuration, and service modules
 │   └── demo_data/           Bundled input files
 ├── frontend/                React/Vite web client
+│   └── vercel.json           Vercel deployment configuration
+├── mcp_server/               MCP stdio server exposing upload_data and ask_question
+│   ├── server.py             Authenticated, validated FastAPI proxy
+│   ├── requirements.txt      MCP SDK and HTTP client dependencies
+│   └── README.md             MCP setup and client configuration
 ├── snowflake_app/           Native Streamlit deployment
 │   ├── sf_lib/              Shared ingestion, ontology, agents, and query logic
 │   ├── demo_data/           Data staged with the Streamlit app
@@ -468,6 +554,7 @@ EagleView/
 │   ├── setup_domain_agents.py  Procedures and Cortex Agent definitions
 │   └── deploy.py            Stage and Streamlit deployment script
 ├── docs/query-flow.md       Detailed conversational query diagrams
+├── snowflake_app/snow_cli_tools.sh  Snowflake CLI helper commands
 └── render.yaml              Render backend deployment configuration
 ```
 
