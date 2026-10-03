@@ -19,8 +19,8 @@ from app.services import snowflake_service  # noqa: E402
 APP_DIR = Path(__file__).resolve().parent
 DATABASE = "EGLE_VIEW"
 SCHEMA = "PUBLIC"
-STAGE = f"{DATABASE}.{SCHEMA}.DATAMIND_STAGE"
-APP_NAME = f"{DATABASE}.{SCHEMA}.DATAMIND"
+STAGE = f"{DATABASE}.{SCHEMA}.EGLEVIEW_STAGE"
+APP_NAME = f"{DATABASE}.{SCHEMA}.EGLEVIEW"
 WAREHOUSE = "COMPUTE_WH"
 
 FILES = [
@@ -89,7 +89,7 @@ def main():
         for role in ("ROLE_DEMO_USER_A", "ROLE_DEMO_USER_B"):
             cur.execute(f"GRANT USAGE ON STREAMLIT {APP_NAME} TO ROLE {role}")
 
-        cur.execute(f"SHOW STREAMLITS LIKE 'DATAMIND' IN SCHEMA {DATABASE}.{SCHEMA}")
+        cur.execute(f"SHOW STREAMLITS LIKE 'EGLEVIEW' IN SCHEMA {DATABASE}.{SCHEMA}")
         rows = cur.fetchall()
         cols = [d[0] for d in cur.description]
         info = dict(zip(cols, rows[0])) if rows else {}
