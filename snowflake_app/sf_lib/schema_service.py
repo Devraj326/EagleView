@@ -156,8 +156,9 @@ def load_rows(session, ctx: dict, table_name: str, load_df: pd.DataFrame, column
     other_cols = [c["target_column"] for c in columns if c["target_column"] != pk_col]
     all_cols = [pk_col] + other_cols
 
+    update_assignments = ", ".join(f'"{c}" = s."{c}"' for c in other_cols)
     update_clause = (
-        f"WHEN MATCHED THEN UPDATE SET {', '.join(f'\"{c}\" = s.\"{c}\"' for c in other_cols)}\n"
+        f"WHEN MATCHED THEN UPDATE SET {update_assignments}\n"
         if other_cols else ""
     )
     merge_sql = f"""
