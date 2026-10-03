@@ -78,7 +78,21 @@ The agents recognize supply-chain metric concepts including:
 
 The live metric calculation is grounded in the uploaded columns and the generated read-only query. A deployment that requires audited enterprise KPI definitions should add explicit governed views or metric definitions for these formulas before production use; the current repository provides the domain tables, relationship catalog, semantic column mappings, and agent instructions that ground those calculations.
 
-## Architecture
+- **Streamlit-in-Snowflake** (`snowflake_app/streamlit_app.py`) — real per-user Snowflake
+  logins, isolated by Snowflake's own RBAC.
+- **FastAPI + React** (`backend/`, `frontend/`) — one shared privileged connection, isolates
+  users via a dynamically provisioned schema name (`USER_<hash>`).
+
+| Layer | Tech |
+|---|---|
+| Agents / data | Snowflake Cortex Agents, Snowpark, stored procedures |
+| Backend | FastAPI (Python 3.12), SQLite for app metadata, Google Sign-In |
+| Frontend | React + TypeScript + Vite |
+| Ops / CLI | Snowflake CLI (`snow`) — inspect and test live agents from the terminal |
+
+## Architecture — `sf_lib` module map
+
+One module, one responsibility, imported identically by both runtimes:
 
 There are two user-facing implementations backed by the shared Snowflake library:
 

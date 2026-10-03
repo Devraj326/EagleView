@@ -1,6 +1,7 @@
 import pandas as pd
 
 from sf_lib import metadata
+from sf_lib.activity_log import log
 from sf_lib.naming import safe_identifier
 
 _VALID_TYPES = {
@@ -129,6 +130,17 @@ def load_rows(session, ctx: dict, table_name: str, load_df: pd.DataFrame, column
         return len(load_df)
 
     pk_col = pk_cols[0]
+    # A primary key column is NOT NULL at the Snowflake table level (see
+    # schema_service.build_columns_from_classification: "nullable": not
+    # is_pk), but source files routinely have a stray blank cell in an ID
+    # column. Snowflake rejects the ENTIRE batch — not just the bad row — on
+    # a NOT NULL violation, so drop null-PK rows before they ever reach a
+    # MERGE/INSERT rather than letting one bad row block every good one.
+    null_pk_count = int(load_df[pk_col].isna().sum())
+    if null_pk_count:
+        log(f"Dropping {null_pk_count} row(s) with a missing {pk_col} before loading into {table_name}")
+        load_df = load_df[load_df[pk_col].notna()]
+
     # The same entity can legitimately repeat within one upload (e.g. a
     # customer with two orders in the same file) — MERGE rejects a source
     # side with more than one row matching the same target key, so dedupe
