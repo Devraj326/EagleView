@@ -16,6 +16,10 @@ snowflake_app/venv/
 snowflake_app/__pycache__/
 snowflake_app/**/__pycache__/
 
+# MCP server
+mcp_server/venv/
+mcp_server/__pycache__/
+
 # OS
 .DS_Store
 
