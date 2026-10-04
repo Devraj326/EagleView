@@ -21,7 +21,7 @@ on:
       - ".github/workflows/deploy-backend-spcs.yml"
 
 env:
-  REGISTRY: xtscjvv-pj82646.registry.snowflakecomputing.com
+  REGISTRY: bwmuumn-jk35447.registry.snowflakecomputing.com
   IMAGE_PATH: egle_view/public/egleview_repo/egleview-backend
 
 jobs:
