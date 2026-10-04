@@ -137,38 +137,55 @@ Each agent is a **real Cortex Agent object** created via `SNOWFLAKE.CORTEX.DATA_
 
 ## CoCo Usage — Full Lifecycle
 
-EagleView was built **entirely with Snowflake CoCo** (Cortex Code) across every phase:
+EagleView was built **entirely with Snowflake CoCo** (Cortex Code Desktop — VS Code extension) across every phase of the hackathon. CoCo was the primary development tool, not just an assistant.
 
-### Planning
-- Codebase architecture analysis and gap identification
-- Entity-relationship model design
-- Implementation plan with judging criteria alignment
+### Planning (CoCo Desktop)
+- **Codebase exploration**: CoCo analyzed all 57 source files, identified the active code path (sf_lib) vs dead code (Gemini services), and mapped the full architecture
+- **Gap analysis**: CoCo compared the existing platform against hackathon requirements and identified 7 specific gaps (no ontology, no semantic views, no supply chain data, no canonical metrics, no persona consistency, no dynamic tables, no Cortex Analyst)
+- **Implementation plan**: CoCo designed the 7-phase implementation plan aligned to judging criteria
+- **Ontology design**: CoCo designed the entity-relationship model (Supplier → Part → Plant → Shipment → Order → Customer) and canonical metric formulas
 
-### Development
-- Synthetic data generation (11 CSVs, 81K+ rows, referentially consistent)
-- Semantic view YAML authoring (607 lines, 9 verified queries)
-- Dynamic table SQL creation (5 auto-refreshing metric tables)
-- Domain agent setup (24 Cortex Agents via `create_all_agents.py`)
-- Query pipeline update: Cortex Analyst governed path integration
-- Streamlit SC Command Center page with KPI ribbon and persona proof
-- Frontend persona selector and supply-chain-focused suggestions
+### Development (CoCo Desktop)
+- **Synthetic data generation**: CoCo wrote `generate_sc_data.py` (287 lines) producing 11 referentially consistent CSVs (81K+ rows) with realistic supply chain patterns (80% on-time, 85% full-fill, 15% partial shipments)
+- **Semantic view authoring**: CoCo authored the `SC_SUPPLY_CHAIN` semantic view YAML (607 lines) with 8 entity tables, 9 relationships, and 9 verified queries — deployed via `cortex agent-studio sv-deploy`
+- **Dynamic table creation**: CoCo wrote and executed `CREATE DYNAMIC TABLE` DDL for 5 metric tables (OTD%, fill rate, DOI, landed cost, supplier scorecard) with `TARGET_LAG = '1 hour'`
+- **Cortex Agent setup**: CoCo wrote `create_all_agents.py` and executed it to create 24 Cortex Agents (12 primary + 12 sub) via `CREATE AGENT ... FROM SPECIFICATION`
+- **Query pipeline integration**: CoCo modified `query_pipeline.py` to add the Cortex Analyst governed path — metric questions detected by keyword matching, routed through `CORTEX.ANALYST_RUN()` against the semantic view
+- **Streamlit SC Command Center**: CoCo added a third page to `streamlit_app.py` with live KPI ribbon (querying dynamic tables), persona selector, governed chat, and consistency proof
+- **Frontend updates**: CoCo modified `DashboardPage.tsx` (persona selector), `api.ts` (persona parameter), and `query.py` (persona in QueryRequest)
+- **CoCo Skills**: CoCo created 2 reusable skills — `eagleview` (243 lines, full architecture) and `sc-metrics` (113 lines, canonical metric definitions)
 
-### Execution
-- SQL execution against Snowflake (DDL, COPY INTO, queries)
-- Data loading via PUT + COPY INTO (11 tables)
-- Semantic view deployment via `cortex agent-studio sv-deploy`
-- Git commit and push to GitHub (auto-triggers Render + Vercel deploys)
+### Execution (CoCo Desktop)
+- **SQL execution**: CoCo executed DDL directly against Snowflake via `sql_execute` — created schemas, tables, stored procedures, agents, dynamic tables
+- **Data loading**: CoCo orchestrated PUT + COPY INTO to load 81K+ rows across 11 tables into `EGLE_VIEW.DEMO_A`
+- **Semantic view deployment**: CoCo deployed the semantic view using `cortex agent-studio sv-deploy --file-path SC_SUPPLY_CHAIN.sv.yaml --fqn EGLE_VIEW.DEMO_A.SC_SUPPLY_CHAIN`
+- **Agent testing**: CoCo tested the ORDER_AGENT via `SNOWFLAKE.CORTEX.DATA_AGENT_RUN()` — verified the agent writes its own SQL and returns results
+- **Git operations**: CoCo committed and pushed all changes to GitHub (`git add`, `git commit`, `git push upstream docs/update-readme`), triggering Render + Vercel auto-redeploys
 
-### Testing
-- Canonical metric verification (all 4 KPIs returning expected values)
-- Cortex Agent response testing (ORDER_AGENT writes and executes own SQL)
-- Persona consistency proof (same metric → same answer across 3 personas)
+### Testing & Validation (CoCo Desktop)
+- **Metric verification**: CoCo queried all 4 canonical KPIs and verified correct values (OTD% = 78.87%, fill rate = 92.10%, DOI = 3.3 days, landed cost = ₹2,837)
+- **Agent response testing**: CoCo invoked `DATA_AGENT_RUN()` on ORDER_AGENT — agent wrote `SELECT ORDER_ID, CUST_ID, PROD_ID, QTY, TOTAL_AMT, ORDER_STATUS, ORDER_DT FROM EGLE_VIEW.DEMO_A.ORDER_DATA ORDER BY TOTAL_AMT DESC LIMIT 5` and returned 5 rows with business insight
+- **Persona consistency proof**: CoCo ran the OTD% verified query and confirmed identical results regardless of persona context
+- **Dynamic table validation**: CoCo verified all 5 dynamic tables populated correctly — `SC_OTD_METRICS` (635 rows), `SC_FILL_RATE` (4,974 rows), `SC_INVENTORY_POSITION` (822 rows), `SC_LANDED_COST` (5,000 rows), `SC_SUPPLIER_SCORECARD` (200 rows)
+- **Carrier-level analysis**: CoCo queried OTD% by carrier — Ekart (82.72%), BlueDart (80.57%), Shadowfax (78.89%), DTDC (78.63%), Delhivery (77.64%), Xpressbees (75.09%)
 
 ### Reusable CoCo Skills
-| Skill | Lines | Purpose |
-|---|---|---|
-| `eagleview` | 243 | Full architecture context — any CoCo session instantly knows the codebase |
-| `sc-metrics` | 113 | Canonical supply chain metric definitions — shareable across teams |
+| Skill | Lines | Purpose | Shareable? |
+|---|---|---|---|
+| `eagleview` | 243 | Full architecture context — any CoCo session instantly knows the codebase, active vs dead code, all agents, pipeline stages | Project-specific |
+| `sc-metrics` | 113 | Canonical supply chain metric definitions with exact SQL, required columns, common dimensions, and gotchas | **Yes — any team building SC analytics can use this** |
+
+### CoCo Commands & Tools Demonstrated
+| CoCo Capability | How We Used It |
+|---|---|
+| `sql_execute` | DDL execution, data queries, metric verification, agent testing |
+| `cortex agent-studio sv-deploy` | Semantic view deployment to Snowflake |
+| `cortex agent-studio sv-write` | Semantic view YAML workspace management |
+| Task subagents (Explore) | Parallel codebase exploration with 3 concurrent agents |
+| File creation & editing | Generated 35+ files (Python, YAML, TypeScript, SQL, CSV) |
+| Git integration | Commit and push directly from CoCo |
+| Chart visualization | Rendered OTD% by carrier as inline bar chart |
+| Plan mode | Structured implementation planning with user approval |
 
 ---
 
