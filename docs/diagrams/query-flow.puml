@@ -1,0 +1,391 @@
+@startuml QueryFlow
+
+title EagleView - Natural Language Query Flow
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #F5F7FA
+  BorderColor #334155
+  DiamondBackgroundColor #FFF7ED
+  DiamondBorderColor #C2410C
+  StartColor #16A34A
+  EndColor #DC2626
+  BarColor #64748B
+}
+
+start
+:User asks a question;
+:Frontend sends POST /api/query;
+
+if (Bearer token valid?) then (no)
+  :Return 401 Unauthorized;
+  stop
+else (yes)
+  :Load current user;
+endif
+
+:ready_context;
+:Get shared Snowpark session;
+:Create user schema if needed;
+:Ensure metadata tables exist;
+:Start activity capture;
+:query_pipeline.ask_question;
+:Create or reuse session_id;
+:Save user question to APP_CONVERSATIONS;
+:List ready domains and table row counts;
+
+if (Any uploaded data?) then (no)
+  :Create no-data answer;
+  :Save assistant answer;
+  :Return JSON response and agent_log;
+  stop
+else (yes)
+  :Build dataset catalog;
+  :Read relationships and live table columns;
+  :Load recent conversation history;
+  :Query Understanding Cortex call;
+endif
+
+if (Intent is clarification?) then (yes)
+  :Create one short clarifying question;
+  :Save assistant answer;
+  :Return JSON response and agent_log;
+  stop
+else (no)
+endif
+
+if (Intent is analytics?) then (yes)
+  :Select primary relevant domain agent;
+  :Domain agent writes and runs query;
+else (entity investigation)
+  :Select all relevant domain agents;
+  if (More than one agent?) then (yes)
+    :Create independent Snowpark sessions;
+    :Run agents in parallel;
+  else (no)
+    :Run one domain agent;
+  endif
+  :Collect agent results;
+endif
+
+if (SQL and rows accepted?) then (no)
+  :Return unavailable, no-match, or no-record answer;
+  :Save assistant answer;
+  :Return JSON response and agent_log;
+  stop
+else (yes)
+  :Validate one read-only SELECT/WITH query;
+endif
+
+if (Validation passed?) then (no)
+  :Discard unsafe or out-of-scope query;
+  :Return unavailable answer;
+  stop
+else (yes)
+  :Result Interpretation Cortex call;
+  :Build answer, result, summary, timeline, and SQL;
+  :Save assistant answer and generated SQL;
+  :Return JSON response and agent_log;
+endif
+
+stop
+@enduml
+
+@startuml AnalyticsScenario
+
+title Scenario 1 - Analytics Question
+
+actor User as U
+participant "FastAPI /api/query" as API
+participant "Query Understanding" as QU
+participant "Domain Agent" as DA
+participant Snowflake as SF
+participant "Result Interpretation" as RI
+
+U -> API: Ask: "What were total sales last month?"
+API -> QU: Question + catalog + recent history
+QU --> API: intent=analytics + relevant tables
+API -> DA: Question + catalog
+DA -> SF: Generate and run read-only SQL
+SF --> DA: Rows + SQL used
+DA --> API: SQL + rows
+API -> API: Validate SQL and table scope
+API -> RI: Question + understanding + rows
+RI --> API: Plain-English answer + summary
+API --> U: Answer, rows, SQL, summary, agent_log
+
+@enduml
+
+@startuml EntityInvestigationScenario
+
+title Scenario 2 - Entity Investigation
+
+actor User as U
+participant "FastAPI /api/query" as API
+participant "Query Understanding" as QU
+participant "Order Agent" as OA
+participant "Delivery Agent" as DA
+participant Snowflake as SF
+participant "Result Interpretation" as RI
+
+U -> API: Ask: "What happened with order 1234?"
+API -> QU: Question + catalog + recent history
+QU --> API: intent=entity_investigation\nentity=order/1234
+
+par Investigate order
+  API -> OA: Investigate order 1234
+  OA -> SF: Run order query
+  SF --> OA: Order rows
+  OA --> API: SQL + rows
+else Check delivery
+  API -> DA: Check delivery facts for order 1234
+  DA -> SF: Run delivery query
+  SF --> DA: Delivery rows
+  DA --> API: SQL + rows
+end
+
+API -> API: Validate each read-only query
+API -> RI: Accepted rows + entity context
+RI --> API: Narrative + summary + timeline
+API --> U: Entity answer and related results
+
+@enduml
+
+@startuml ClarificationScenario
+
+title Scenario 3 - Clarification
+
+start
+:Question: "Show me the revenue.";
+:Query Understanding;
+if (Question is ambiguous?) then (yes)
+  :Create one short clarification question;
+  :Save it in conversation history;
+  :Return intent=clarification;
+  stop
+else (no)
+  :Continue to a domain agent;
+  stop
+endif
+@enduml
+
+@startuml DataUploadFlow
+
+title EagleView - Data Upload and Ingestion Flow
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #F5F7FA
+  BorderColor #334155
+  DiamondBackgroundColor #FFF7ED
+  DiamondBorderColor #C2410C
+  StartColor #16A34A
+  EndColor #DC2626
+  BarColor #64748B
+}
+
+start
+:User selects CSV, Excel, or JSON file;
+:Frontend sends POST /api/datasets/upload;
+
+if (Bearer token valid?) then (no)
+  :Return 401 Unauthorized;
+  stop
+else (yes)
+  :Load current user;
+endif
+
+:ready_context;
+:Get Snowpark session;
+:Ensure user schema and metadata tables exist;
+:Read uploaded bytes;
+:Parse file into a dataframe;
+
+if (File valid and non-empty?) then (no)
+  :Return upload error;
+  stop
+else (yes)
+  :Create APP_DATASETS metadata row;
+  :Store row count and raw file;
+  :Return dataset_id and status=UPLOADED;
+endif
+
+:Frontend immediately calls POST /api/datasets/{id}/analyze;
+:Load the saved raw file and dataframe sample;
+:Mark dataset ANALYZING;
+:Orchestrator splits columns by business domain;
+
+if (Any domain matched?) then (no)
+  :Mark dataset FAILED;
+  :Return analysis error;
+  stop
+else (yes)
+  repeat
+    :Read existing domain table columns;
+    :Classify domain slice;
+    :Create domain slice metadata;
+    :Persist proposed column mapping;
+    :Ask domain agent about ambiguous fields;
+  repeat while (More domain slices?) is (yes)
+  :Mark dataset SCHEMA_PROPOSED;
+  :Return domain mappings and agent_log;
+endif
+
+:User reviews and edits mappings;
+:Frontend sends POST /api/datasets/{id}/confirm;
+:Persist user column changes;
+:Load raw file again;
+:Mark dataset LOADING;
+
+repeat
+  :Read included columns for domain;
+  if (Any columns included?) then (no)
+    :Mark domain SKIPPED;
+  else (yes)
+    :Cast and rename dataframe columns;
+    :Cortex domain agent merges or extends table;
+    :Load rows into user-scoped Snowflake table;
+    :Record domain row count and mark READY;
+    :Detect and save cross-domain relationships;
+  endif
+repeat while (More domain slices?) is (yes)
+
+:Mark dataset READY;
+:Return loaded domains, row counts, and agent_log;
+stop
+@enduml
+
+@startuml DataUploadSequence
+
+title Data Upload - Manual Review and Confirm Sequence
+
+actor User as U
+participant "React Onboarding" as UI
+participant "FastAPI /api/datasets" as API
+participant "Snowpark + Metadata" as META
+participant "Orchestrator Agent" as ORCH
+participant "Domain Classifier" as CLASS
+participant "Domain Agent" as AGENT
+participant Snowflake as SF
+
+U -> UI: Select business file
+UI -> API: POST /datasets/upload (multipart file)
+API -> META: Parse dataframe
+API -> META: Create dataset metadata row
+API -> META: Save raw file and row count
+META --> API: dataset_id, status=UPLOADED
+API --> UI: Upload response
+
+UI -> API: POST /datasets/{id}/analyze
+API -> META: Read raw file and sample rows
+API -> ORCH: Columns + sample rows
+ORCH --> API: Domain assignments
+
+loop Each assigned business domain
+  API -> META: Read existing table columns
+  API -> CLASS: Domain slice + existing schema + sample
+  CLASS --> API: Proposed column mapping
+  API -> META: Save domain slice and mapping
+  API -> AGENT: Ask about ambiguous fields
+  AGENT --> API: Optional clarification note
+end
+
+API --> UI: Domain mappings + agent_log
+U -> UI: Review and edit mappings
+UI -> API: POST /datasets/{id}/confirm
+API -> META: Save user mapping changes
+API -> META: Read raw file and build load dataframes
+
+loop Each confirmed domain
+  API -> AGENT: MergeDomainTable with confirmed schema
+  AGENT -> SF: Create or extend domain table
+  SF --> AGENT: Merge result
+  API -> SF: Load cast rows with write_pandas
+  SF --> API: Loaded row count
+  API -> META: Mark domain READY
+  API -> META: Detect and save relationships
+end
+
+API -> META: Mark dataset READY
+API --> UI: Loaded domains, row counts, agent_log
+UI --> U: Show successful upload
+
+@enduml
+
+@startuml DemoSeedFlow
+
+title Demo Data Seed - One Shot Ingestion
+
+actor User as U
+participant "React Onboarding" as UI
+participant "POST /api/datasets/seed-demo" as API
+participant "Demo Seed Service" as SEED
+participant "Ingestion Pipeline" as PIPE
+participant "Cortex Domain Agents" as AGENT
+participant Snowflake as SF
+
+U -> UI: Click Seed Demo Data
+UI -> API: POST /datasets/seed-demo
+API -> SEED: Seed bundled demo files
+
+loop Each demo file
+  SEED -> PIPE: Upload and create metadata
+  PIPE -> PIPE: Parse dataframe
+  PIPE -> PIPE: Split columns by domain
+  PIPE -> AGENT: Classify and propose schema
+  AGENT --> PIPE: Domain mappings
+  PIPE -> AGENT: Confirm schema and merge table
+  AGENT -> SF: Create or extend domain table
+  SF --> AGENT: Merge result
+  PIPE -> SF: Load rows
+  SF --> PIPE: Row count
+  PIPE -> PIPE: Detect relationships and mark READY
+end
+
+SEED --> API: Results + agent_log
+API --> UI: Seed status for each file
+UI --> U: Demo datasets ready
+
+@enduml
+
+@startuml FailureScenarios
+
+title Scenario 4 - No Data, No Match, or Invalid Result
+
+start
+:Question;
+if (Ready domains exist?) then (no)
+  :Return "Upload and confirm a file first";
+  stop
+else (yes)
+  :Run domain agent query;
+endif
+
+if (Agent returned a usable query?) then (no)
+  :Return information-not-available answer;
+  stop
+else (yes)
+endif
+
+if (SQL is read-only and user-scoped?) then (no)
+  :Discard query;
+  :Return information-not-available answer;
+  stop
+else (yes)
+endif
+
+if (Rows found?) then (no)
+  if (Entity investigation?) then (yes)
+    :Return no-record-found answer;
+  else (analytics)
+    :Return no-records-matched answer;
+  endif
+  stop
+else (yes)
+  :Interpret results;
+  :Return answer;
+  stop
+endif
+@enduml
