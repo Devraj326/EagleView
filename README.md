@@ -26,6 +26,13 @@ EagleView solves this by combining **runtime flexibility** (any file, any domain
 
 ## Architecture
 
+### High-Level Overview
+
+![EagleView Architecture](docs/diagrams/eagleview_sc_architecture.png)
+
+<details>
+<summary>Text version (click to expand)</summary>
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  DATA SOURCES: ERP, Logistics, Supplier DBs, IoT, Spreadsheets │
@@ -71,6 +78,8 @@ EagleView solves this by combining **runtime flexibility** (any file, any domain
 │  Persona Selector: Planning / Procurement / Logistics           │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+</details>
 
 ---
 
