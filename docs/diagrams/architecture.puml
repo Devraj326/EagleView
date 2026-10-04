@@ -1,0 +1,185 @@
+@startuml EagleViewArchitecture
+
+title EagleView: AI-Powered Data Ingestion & Natural Language Analytics
+caption Active FastAPI + Snowflake architecture | detailed request and response flow
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing true
+skinparam defaultFontName Arial
+skinparam ParticipantPadding 18
+skinparam BoxPadding 12
+skinparam sequence {
+  ArrowColor #2F80ED
+  ActorBorderColor #5B9BD5
+  ActorBackgroundColor #EAF3FF
+  ParticipantBorderColor #8AA9C7
+  ParticipantBackgroundColor #F5F9FE
+  LifeLineBorderColor #B9D3EA
+  LifeLineBackgroundColor #F9FCFF
+  GroupBorderColor #6B6B6B
+  GroupBackgroundColor #FFFFFF
+  ReferenceBackgroundColor #FFF8DC
+  ReferenceBorderColor #C8B458
+  DividerBackgroundColor #FFFFFF
+  DividerBorderColor #666666
+}
+
+actor "Business User" as user
+participant "React Frontend\n(Vite / TypeScript)" as ui
+participant "FastAPI Backend\n(Render)" as api
+database "SQLite\nUser identities" as sqlite
+database "Raw File Storage\nUploaded bytes" as files
+participant "Snowpark Bridge\nShared session + user ctx" as bridge
+database "Snowflake\nUser-scoped schemas" as sf
+participant "Cortex\nStructured COMPLETE" as cortex
+participant "Domain Cortex\nAgents" as agents
+participant "SQL Validator\nRead-only firewall" as validator
+
+== Data Onboarding & Ingestion Flow ==
+
+user -> ui : Select CSV / Excel / JSON
+ui -> api : POST /api/datasets/upload
+api -> api : Verify Bearer JWT
+api -> bridge : ready_context(user)
+bridge -> sf : Create USER_<hash> schema
+bridge -> sf : Ensure APP_* metadata tables
+api -> api : Parse file into dataframe
+api -> files : Save raw upload by dataset_id
+api -> sf : Create APP_DATASETS row\nstatus = UPLOADED
+sf --> api : dataset_id + row count
+api --> ui : Upload accepted
+
+ui -> api : POST /api/datasets/{id}/analyze
+api -> files : Read saved raw upload
+api -> sf : Mark dataset ANALYZING
+api -> cortex : Orchestrator: split columns by domain
+cortex --> api : Domain assignments
+
+loop Each assigned domain slice
+  api -> sf : Read existing target table columns
+  api -> cortex : Classify slice + sample + live schema
+  cortex --> api : Proposed mapping + confidence
+  api -> sf : Save APP_DATASET_DOMAINS\nand APP_DATASET_COLUMNS
+  api -> agents : Ask about ambiguous fields
+  agents --> api : Optional agent note
+end
+
+api -> sf : Mark dataset SCHEMA_PROPOSED
+api --> ui : Mappings + agent activity log
+user -> ui : Review mappings and edit types
+ui -> api : POST /api/datasets/{id}/confirm
+api -> sf : Persist USER_MODIFIED mappings
+api -> files : Read raw upload again
+api -> sf : Mark dataset LOADING
+
+loop Each confirmed domain
+  api -> api : Select included columns\nand cast dataframe
+  api -> agents : MergeDomainTable tool request
+  agents -> sf : Create or extend persistent\ndomain table
+  sf --> agents : Merge result
+  api -> sf : write_pandas rows
+  sf --> api : Loaded row count
+  api -> sf : Mark domain READY
+  api -> sf : Detect and save _ID relationships
+end
+
+api -> sf : Mark dataset READY
+api --> ui : Loaded domains + row counts
+ui --> user : Show ready data and dashboard entry
+
+== Natural Language Analytics Flow ==
+
+user -> ui : Ask a business question
+ui -> api : POST /api/query\nquestion + optional session_id
+api -> bridge : ready_context(user)
+bridge -> sf : Load user-scoped metadata context
+api -> sf : Save question in APP_CONVERSATIONS
+api -> sf : List READY domains and table row counts
+
+alt No READY domains
+  sf --> api : No uploaded data
+  api -> sf : Save no-data response
+  api --> ui : Ask user to upload and confirm data
+else Data is available
+  api -> sf : Build catalog: tables, columns, relationships
+  api -> sf : Load recent conversation history
+  api -> cortex : Understand intent + entity + relevant tables
+  cortex --> api : analytics / investigation / clarification
+
+  alt Clarification required
+    api -> sf : Save clarification response
+    api --> ui : One short clarifying question
+  else Analytics question
+    api -> agents : Select primary relevant domain agent
+    agents -> sf : RUN_SELECT_PROC\nGenerate and execute SELECT/WITH
+    sf --> agents : Generated SQL + rows
+    agents --> api : SQL + rows
+  else Entity investigation
+    par Relevant domains use independent Snowpark sessions
+      api -> agents : Investigate order / customer / product
+      agents -> sf : RUN_SELECT_PROC\nRead-only domain query
+      sf --> agents : Domain SQL + rows
+      agents --> api : Domain result
+    end
+  end
+
+  api -> validator : Validate each returned SQL
+  validator -> validator : One statement, SELECT/WITH only\nexact user schema + allowed tables
+
+  alt Unsafe, unavailable, or no matching rows
+    validator --> api : Reject or empty result
+    api -> sf : Save unavailable / no-match response
+    api --> ui : Standard empty-result response
+  else Accepted rows
+    validator --> api : Approved SQL + rows
+    api -> cortex : Interpret rows + question + history
+    cortex --> api : Answer + summary + timeline
+    api -> sf : Save answer + generated SQL
+    api --> ui : Answer, rows, SQL, timeline, agent log
+    ui --> user : Render narrative and results
+  end
+end
+
+== Authentication & Isolation Controls ==
+
+user -> ui : Google sign-in or demo login
+ui -> api : POST /api/auth/google or /demo
+api -> sqlite : Lookup or create application user
+api -> sqlite : Store user identity + schema name
+api --> ui : Application JWT
+ui -> api : Bearer JWT on every protected request
+api -> bridge : Resolve authenticated user
+bridge -> bridge : user_id -> USER_<sha256 hash>
+bridge -> sf : Qualify every metadata and data query
+validator -> sf : Enforce exact database/schema/table scope
+
+note over sf
+  Per-user Snowflake schema contains:
+  APP_DATASETS, APP_DATASET_DOMAINS,
+  APP_DATASET_COLUMNS, APP_RELATIONSHIPS,
+  APP_CONVERSATIONS, and persistent domain tables.
+end note
+
+note over agents
+  Active web path uses Snowflake Cortex Data Agents.
+  backend/app/services Gemini modules remain a legacy /
+  alternate path and are not imported by active routers.
+end note
+
+== Snowflake-Native Alternative ==
+
+participant "Streamlit-in-Snowflake\nstreamlit_app.py" as streamlit
+participant "Snowflake RBAC\nrbac.py / EXECUTE AS CALLER" as rbac
+
+streamlit -> rbac : Resolve viewer context
+rbac -> sf : Use same sf_lib pipeline\nwith caller-scoped access
+streamlit -> sf : Upload, query, and render in Snowflake
+
+legend right
+  |= Visual convention |= Meaning |
+  | Blue solid arrow | Request or command |
+  | Dashed arrow | Response or returned data |
+  | Yellow note | Important implementation boundary |
+  | Group band | End-to-end user workflow |
+endlegend
+@enduml
