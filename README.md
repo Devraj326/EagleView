@@ -28,7 +28,7 @@ EagleView solves this by combining **runtime flexibility** (any file, any domain
 
 ### High-Level Overview
 
-![EagleView Architecture](docs/diagrams/eagleview_sc_architecture.png)
+![EagleView Architecture](docs/diagrams/EagleView_SC_Architecture.png)
 
 <details>
 <summary>Text version (click to expand)</summary>
