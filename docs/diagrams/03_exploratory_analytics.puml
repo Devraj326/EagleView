@@ -1,0 +1,80 @@
+@startuml
+title EagleView — Part 3: Exploratory Analytics (Domain Agent Path)
+caption Ad-hoc questions → Domain Agents → Freestyle SQL → SQL Validation
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing true
+skinparam defaultFontName Arial
+skinparam ParticipantPadding 20
+skinparam BoxPadding 14
+skinparam sequence {
+  ArrowColor #2F80ED
+  ActorBorderColor #5B9BD5
+  ActorBackgroundColor #EAF3FF
+  ParticipantBorderColor #8AA9C7
+  ParticipantBackgroundColor #F5F9FE
+  LifeLineBorderColor #B9D3EA
+  LifeLineBackgroundColor #F9FCFF
+  GroupBorderColor #6B6B6B
+  GroupBackgroundColor #FFFFFF
+  ReferenceBackgroundColor #FFF8DC
+  ReferenceBorderColor #C8B458
+  DividerBackgroundColor #FFFFFF
+  DividerBorderColor #666666
+}
+
+
+actor "Business User" as user
+participant "React Frontend\n(Vercel)" as ui
+participant "FastAPI Backend\n(Render)" as api
+database "Snowflake\nEGLE_VIEW" as sf
+participant "Cortex COMPLETE\n(llama3.1-70b)" as cortex
+participant "12 Domain\nCortex Agents" as agents
+participant "SQL Validator\nDefense-in-Depth" as validator
+
+user -> ui : "Tell me about order ORD100775"
+ui -> api : POST /api/query\n{question, session_id}
+api -> cortex : **Query Understanding Agent**\nClassify intent + entity + relevant tables
+cortex --> api : intent=entity_investigation\nentityId=ORD100775\nrelevantTables=[ORDER_DATA, DELIVERY_DATA]
+
+api -> api : Resolve tables → agent keys\n[order_agent, delivery_agent]
+
+par Parallel dispatch (ThreadPoolExecutor)
+  api -> agents : **ORDER_AGENT**\nDATA_AGENT_RUN()\n"Look up ORD100775 in your table"
+  agents -> sf : **RunDomainQuery** tool\nAgent writes its own SELECT SQL
+  sf --> agents : Order details rows
+  agents --> api : SQL + rows
+
+  api -> agents : **DELIVERY_AGENT**\nDATA_AGENT_RUN()\n"Look up delivery for ORD100775"
+  agents -> sf : **RunDomainQuery** tool
+  sf --> agents : Delivery status rows
+  agents --> api : SQL + rows
+end
+
+api -> validator : Validate each agent's SQL
+validator -> validator : Single statement check\nSELECT/WITH only (16 forbidden keywords)\n3-part name scoping (db.schema.table)\nComment stripping
+
+note right of validator
+  **Defense-in-Depth**
+  App-level: sql_validator.py
+  Proc-level: RUN_SELECT_PROC
+  independently validates
+end note
+
+validator --> api : Approved SQL + rows
+
+api -> cortex : **Result Interpretation Agent**\nCombine multi-agent results into\nnatural language answer
+cortex --> api : {answer, timeline, summary, missingInfo}
+
+api -> sf : Save answer + SQL in APP_CONVERSATIONS
+api --> ui : Unified response with\ntimeline + charts + entity badge
+ui --> user : Rich answer:\n"ORD100775 was placed Apr 17, total $101K,\ncurrently Returned status"
+
+note over agents
+  **Two-Tier Agent Architecture (24 total)**
+  12 Primary agents: MergeDomainTable + RunDomainQuery + AskAnotherAgent
+  12 Sub agents (_SUB): RunDomainQuery only — NO AskAnotherAgent
+  → Recursion structurally impossible (1-hop max by construction)
+end note
+
+@enduml

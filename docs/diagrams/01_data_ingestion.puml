@@ -1,0 +1,101 @@
+@startuml
+title EagleView — Part 1: Data Ingestion & Supply Chain Onboarding
+caption Upload → Orchestrator → Classify → Review → MERGE Upsert
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing true
+skinparam defaultFontName Arial
+skinparam ParticipantPadding 20
+skinparam BoxPadding 14
+skinparam sequence {
+  ArrowColor #2F80ED
+  ActorBorderColor #5B9BD5
+  ActorBackgroundColor #EAF3FF
+  ParticipantBorderColor #8AA9C7
+  ParticipantBackgroundColor #F5F9FE
+  LifeLineBorderColor #B9D3EA
+  LifeLineBackgroundColor #F9FCFF
+  GroupBorderColor #6B6B6B
+  GroupBackgroundColor #FFFFFF
+  ReferenceBackgroundColor #FFF8DC
+  ReferenceBorderColor #C8B458
+  DividerBackgroundColor #FFFFFF
+  DividerBorderColor #666666
+}
+
+
+actor "Business User" as user
+participant "React Frontend\n(Vercel)" as ui
+participant "FastAPI Backend\n(Render)" as api
+participant "Snowpark Bridge\nsf_lib pipeline" as bridge
+database "Snowflake\nEGLE_VIEW" as sf
+participant "Cortex COMPLETE\n(llama3.1-70b)" as cortex
+participant "12 Domain\nCortex Agents" as agents
+
+user -> ui : Upload supply chain CSV\n(ERP, logistics, supplier, IoT)
+ui -> api : POST /api/datasets/upload
+api -> bridge : ready_context(user)
+bridge -> sf : Create user schema\nEnsure APP_* metadata tables
+api -> api : Parse CSV/Excel/JSON → DataFrame\n(25 MB limit, column sanitization)
+api -> sf : Create APP_DATASETS row\nstatus = UPLOADED
+api --> ui : Upload accepted (dataset_id)
+
+ui -> api : POST /api/datasets/{id}/analyze
+api -> cortex : **Orchestrator Agent**\nSplit columns across domains
+
+note right of cortex
+  Analyzes column names + sample rows
+  Routes to relevant domain agents
+  Force-propagates _ID columns to
+  all domains for join-key coverage
+end note
+
+cortex --> api : Domain assignments\n(e.g. SUPPLIER + ORDER + DELIVERY)
+
+loop Each assigned domain slice
+  api -> sf : DESCRIBE TABLE (existing domain schema)
+  api -> cortex : **Per-Domain Classifier**\nProposes column mapping + types\nSees existing columns (isNewColumn flag)
+  cortex --> api : Proposed mapping + confidence
+  api -> sf : Save APP_DATASET_DOMAINS\nand APP_DATASET_COLUMNS
+end
+
+api -> sf : Mark dataset SCHEMA_PROPOSED
+api --> ui : Domain mappings + agent notes
+
+note over ui
+  **Tabbed Schema Review UI**
+  One tab per domain agent
+  Editable: column names, types,
+  nullable, include/exclude
+  Shows: confidence scores,
+  data quality issues, agent notes
+end note
+
+user -> ui : Review mappings per domain tab\nEdit types, rename columns
+ui -> api : POST /api/datasets/{id}/confirm\n{domains: [{domain_id, columns}]}
+
+loop Each confirmed domain
+  api -> agents : **MergeDomainTable** tool call\n(CREATE or ALTER TABLE ADD COLUMN)
+  agents -> sf : Execute DDL via MERGE_TABLE_PROC
+  sf --> agents : Table ready
+  api -> sf : **MERGE-based upsert**\n(staging table → MERGE INTO → drop staging)\nPK dedup, no duplicates on re-upload
+  sf --> api : Loaded row count
+  api -> sf : **Detect relationships**\nScan _ID columns across READY domains\nExact name match → confidence 0.9
+end
+
+api -> sf : Mark dataset READY
+api --> ui : All domains loaded + discovered relationships
+
+note over sf
+  **11 Base Tables (81K+ rows)**
+  SUPPLIER · PLANT · PARTS · PO · ORDER
+  DELIVERY · CUSTOMER · PRODUCT · FINANCIAL
+  INBOUND_SHIPMENT · INVENTORY_SNAPSHOT
+
+  **5 Dynamic Tables (TARGET_LAG = 1 hour)**
+  SC_OTD_METRICS · SC_FILL_RATE
+  SC_INVENTORY_POSITION · SC_LANDED_COST
+  SC_SUPPLIER_SCORECARD
+end note
+
+@enduml
