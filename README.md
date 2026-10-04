@@ -313,6 +313,3 @@ python snowflake_app/deploy.py
 
 ---
 
-## License
-
-No license file is currently included in the repository.
