@@ -1,0 +1,201 @@
+supplier_id,supplier_name,country,lead_time_days,reliability_score,contract_tier,payment_terms_days,contact_email
+SUP00000,Supplier_SUP00000,China,7,0.88,Preferred,45,contact.sup00000@supplier.example.com
+SUP00001,Supplier_SUP00001,Vietnam,45,0.6,Strategic,90,contact.sup00001@supplier.example.com
+SUP00002,Supplier_SUP00002,India,7,0.59,Preferred,30,contact.sup00002@supplier.example.com
+SUP00003,Supplier_SUP00003,Mexico,10,0.87,Probationary,45,contact.sup00003@supplier.example.com
+SUP00004,Supplier_SUP00004,Taiwan,30,0.67,Strategic,45,contact.sup00004@supplier.example.com
+SUP00005,Supplier_SUP00005,South Korea,14,0.67,Preferred,60,contact.sup00005@supplier.example.com
+SUP00006,Supplier_SUP00006,China,7,0.72,Approved,60,contact.sup00006@supplier.example.com
+SUP00007,Supplier_SUP00007,Thailand,14,0.91,Probationary,30,contact.sup00007@supplier.example.com
+SUP00008,Supplier_SUP00008,South Korea,7,0.79,Approved,45,contact.sup00008@supplier.example.com
+SUP00009,Supplier_SUP00009,China,7,0.84,Approved,30,contact.sup00009@supplier.example.com
+SUP00010,Supplier_SUP00010,Germany,60,0.59,Approved,90,contact.sup00010@supplier.example.com
+SUP00011,Supplier_SUP00011,Japan,10,0.71,Preferred,60,contact.sup00011@supplier.example.com
+SUP00012,Supplier_SUP00012,China,30,0.83,Preferred,45,contact.sup00012@supplier.example.com
+SUP00013,Supplier_SUP00013,Taiwan,21,0.67,Preferred,60,contact.sup00013@supplier.example.com
+SUP00014,Supplier_SUP00014,India,10,0.91,Approved,90,contact.sup00014@supplier.example.com
+SUP00015,Supplier_SUP00015,USA,7,0.64,Approved,45,contact.sup00015@supplier.example.com
+SUP00016,Supplier_SUP00016,Taiwan,21,0.94,Probationary,45,contact.sup00016@supplier.example.com
+SUP00017,Supplier_SUP00017,USA,10,0.66,Approved,90,contact.sup00017@supplier.example.com
+SUP00018,Supplier_SUP00018,Thailand,21,0.71,Preferred,90,contact.sup00018@supplier.example.com
+SUP00019,Supplier_SUP00019,China,60,0.57,Strategic,45,contact.sup00019@supplier.example.com
+SUP00020,Supplier_SUP00020,Vietnam,60,0.85,Strategic,90,contact.sup00020@supplier.example.com
+SUP00021,Supplier_SUP00021,South Korea,30,0.99,Approved,30,contact.sup00021@supplier.example.com
+SUP00022,Supplier_SUP00022,China,45,0.94,Approved,60,contact.sup00022@supplier.example.com
+SUP00023,Supplier_SUP00023,China,14,0.74,Probationary,30,contact.sup00023@supplier.example.com
+SUP00024,Supplier_SUP00024,USA,30,0.89,Strategic,60,contact.sup00024@supplier.example.com
+SUP00025,Supplier_SUP00025,Mexico,30,0.64,Approved,45,contact.sup00025@supplier.example.com
+SUP00026,Supplier_SUP00026,Mexico,60,0.96,Strategic,60,contact.sup00026@supplier.example.com
+SUP00027,Supplier_SUP00027,Taiwan,7,0.6,Approved,60,contact.sup00027@supplier.example.com
+SUP00028,Supplier_SUP00028,Germany,7,0.66,Strategic,30,contact.sup00028@supplier.example.com
+SUP00029,Supplier_SUP00029,Taiwan,60,0.58,Preferred,45,contact.sup00029@supplier.example.com
+SUP00030,Supplier_SUP00030,Taiwan,30,0.62,Probationary,45,contact.sup00030@supplier.example.com
+SUP00031,Supplier_SUP00031,Mexico,60,0.87,Preferred,60,contact.sup00031@supplier.example.com
+SUP00032,Supplier_SUP00032,South Korea,45,0.84,Probationary,90,contact.sup00032@supplier.example.com
+SUP00033,Supplier_SUP00033,China,10,0.65,Approved,30,contact.sup00033@supplier.example.com
+SUP00034,Supplier_SUP00034,Thailand,30,0.65,Preferred,30,contact.sup00034@supplier.example.com
+SUP00035,Supplier_SUP00035,China,45,0.83,Preferred,30,contact.sup00035@supplier.example.com
+SUP00036,Supplier_SUP00036,India,60,0.7,Preferred,60,contact.sup00036@supplier.example.com
+SUP00037,Supplier_SUP00037,Taiwan,10,0.79,Probationary,45,contact.sup00037@supplier.example.com
+SUP00038,Supplier_SUP00038,Taiwan,60,0.73,Strategic,30,contact.sup00038@supplier.example.com
+SUP00039,Supplier_SUP00039,South Korea,14,0.74,Probationary,30,contact.sup00039@supplier.example.com
+SUP00040,Supplier_SUP00040,China,7,0.73,Approved,30,contact.sup00040@supplier.example.com
+SUP00041,Supplier_SUP00041,Germany,10,0.63,Probationary,45,contact.sup00041@supplier.example.com
+SUP00042,Supplier_SUP00042,South Korea,10,0.67,Preferred,30,contact.sup00042@supplier.example.com
+SUP00043,Supplier_SUP00043,Taiwan,60,0.93,Strategic,30,contact.sup00043@supplier.example.com
+SUP00044,Supplier_SUP00044,Mexico,60,0.56,Strategic,45,contact.sup00044@supplier.example.com
+SUP00045,Supplier_SUP00045,Vietnam,21,0.76,Preferred,90,contact.sup00045@supplier.example.com
+SUP00046,Supplier_SUP00046,India,10,0.72,Probationary,60,contact.sup00046@supplier.example.com
+SUP00047,Supplier_SUP00047,Taiwan,14,0.74,Probationary,45,contact.sup00047@supplier.example.com
+SUP00048,Supplier_SUP00048,Germany,14,0.65,Strategic,30,contact.sup00048@supplier.example.com
+SUP00049,Supplier_SUP00049,Japan,7,0.57,Probationary,45,contact.sup00049@supplier.example.com
+SUP00050,Supplier_SUP00050,India,30,0.59,Preferred,30,contact.sup00050@supplier.example.com
+SUP00051,Supplier_SUP00051,Thailand,7,0.85,Preferred,90,contact.sup00051@supplier.example.com
+SUP00052,Supplier_SUP00052,China,30,0.66,Strategic,30,contact.sup00052@supplier.example.com
+SUP00053,Supplier_SUP00053,South Korea,45,0.81,Approved,60,contact.sup00053@supplier.example.com
+SUP00054,Supplier_SUP00054,Germany,45,0.87,Preferred,60,contact.sup00054@supplier.example.com
+SUP00055,Supplier_SUP00055,South Korea,10,0.85,Approved,90,contact.sup00055@supplier.example.com
+SUP00056,Supplier_SUP00056,Japan,60,0.96,Strategic,90,contact.sup00056@supplier.example.com
+SUP00057,Supplier_SUP00057,Thailand,30,0.99,Strategic,45,contact.sup00057@supplier.example.com
+SUP00058,Supplier_SUP00058,Mexico,14,0.61,Approved,30,contact.sup00058@supplier.example.com
+SUP00059,Supplier_SUP00059,Germany,14,0.68,Probationary,60,contact.sup00059@supplier.example.com
+SUP00060,Supplier_SUP00060,Thailand,60,0.84,Strategic,60,contact.sup00060@supplier.example.com
+SUP00061,Supplier_SUP00061,China,10,0.67,Strategic,45,contact.sup00061@supplier.example.com
+SUP00062,Supplier_SUP00062,USA,14,0.82,Approved,45,contact.sup00062@supplier.example.com
+SUP00063,Supplier_SUP00063,USA,30,0.76,Strategic,30,contact.sup00063@supplier.example.com
+SUP00064,Supplier_SUP00064,South Korea,60,0.67,Strategic,60,contact.sup00064@supplier.example.com
+SUP00065,Supplier_SUP00065,Vietnam,45,0.98,Preferred,90,contact.sup00065@supplier.example.com
+SUP00066,Supplier_SUP00066,Mexico,45,0.74,Strategic,30,contact.sup00066@supplier.example.com
+SUP00067,Supplier_SUP00067,China,45,0.95,Strategic,60,contact.sup00067@supplier.example.com
+SUP00068,Supplier_SUP00068,Thailand,30,0.62,Preferred,30,contact.sup00068@supplier.example.com
+SUP00069,Supplier_SUP00069,USA,14,0.95,Strategic,60,contact.sup00069@supplier.example.com
+SUP00070,Supplier_SUP00070,Germany,45,0.66,Strategic,60,contact.sup00070@supplier.example.com
+SUP00071,Supplier_SUP00071,Mexico,60,0.73,Preferred,45,contact.sup00071@supplier.example.com
+SUP00072,Supplier_SUP00072,Vietnam,60,0.91,Probationary,30,contact.sup00072@supplier.example.com
+SUP00073,Supplier_SUP00073,Vietnam,45,0.96,Probationary,45,contact.sup00073@supplier.example.com
+SUP00074,Supplier_SUP00074,USA,10,0.9,Strategic,90,contact.sup00074@supplier.example.com
+SUP00075,Supplier_SUP00075,India,60,0.76,Preferred,90,contact.sup00075@supplier.example.com
+SUP00076,Supplier_SUP00076,Japan,14,0.91,Preferred,45,contact.sup00076@supplier.example.com
+SUP00077,Supplier_SUP00077,India,45,0.63,Approved,60,contact.sup00077@supplier.example.com
+SUP00078,Supplier_SUP00078,China,60,0.67,Probationary,60,contact.sup00078@supplier.example.com
+SUP00079,Supplier_SUP00079,India,7,0.94,Approved,45,contact.sup00079@supplier.example.com
+SUP00080,Supplier_SUP00080,Thailand,14,0.57,Probationary,60,contact.sup00080@supplier.example.com
+SUP00081,Supplier_SUP00081,Japan,21,0.82,Strategic,90,contact.sup00081@supplier.example.com
+SUP00082,Supplier_SUP00082,Thailand,10,0.66,Probationary,30,contact.sup00082@supplier.example.com
+SUP00083,Supplier_SUP00083,Mexico,60,0.79,Preferred,60,contact.sup00083@supplier.example.com
+SUP00084,Supplier_SUP00084,South Korea,7,0.97,Approved,60,contact.sup00084@supplier.example.com
+SUP00085,Supplier_SUP00085,China,45,0.95,Approved,90,contact.sup00085@supplier.example.com
+SUP00086,Supplier_SUP00086,Japan,21,0.86,Preferred,45,contact.sup00086@supplier.example.com
+SUP00087,Supplier_SUP00087,South Korea,45,0.96,Preferred,60,contact.sup00087@supplier.example.com
+SUP00088,Supplier_SUP00088,South Korea,30,0.92,Approved,60,contact.sup00088@supplier.example.com
+SUP00089,Supplier_SUP00089,Germany,21,0.9,Approved,90,contact.sup00089@supplier.example.com
+SUP00090,Supplier_SUP00090,Taiwan,21,0.85,Probationary,45,contact.sup00090@supplier.example.com
+SUP00091,Supplier_SUP00091,China,14,0.78,Approved,30,contact.sup00091@supplier.example.com
+SUP00092,Supplier_SUP00092,Germany,45,0.69,Preferred,45,contact.sup00092@supplier.example.com
+SUP00093,Supplier_SUP00093,India,7,0.66,Probationary,30,contact.sup00093@supplier.example.com
+SUP00094,Supplier_SUP00094,Taiwan,21,0.94,Preferred,90,contact.sup00094@supplier.example.com
+SUP00095,Supplier_SUP00095,Taiwan,21,0.66,Strategic,30,contact.sup00095@supplier.example.com
+SUP00096,Supplier_SUP00096,South Korea,10,0.63,Probationary,30,contact.sup00096@supplier.example.com
+SUP00097,Supplier_SUP00097,Mexico,10,0.95,Strategic,90,contact.sup00097@supplier.example.com
+SUP00098,Supplier_SUP00098,Vietnam,60,0.75,Approved,90,contact.sup00098@supplier.example.com
+SUP00099,Supplier_SUP00099,Thailand,60,0.87,Probationary,90,contact.sup00099@supplier.example.com
+SUP00100,Supplier_SUP00100,Vietnam,45,0.93,Probationary,60,contact.sup00100@supplier.example.com
+SUP00101,Supplier_SUP00101,Germany,60,0.83,Probationary,45,contact.sup00101@supplier.example.com
+SUP00102,Supplier_SUP00102,USA,21,0.58,Approved,45,contact.sup00102@supplier.example.com
+SUP00103,Supplier_SUP00103,USA,14,0.69,Strategic,45,contact.sup00103@supplier.example.com
+SUP00104,Supplier_SUP00104,Vietnam,10,0.72,Preferred,45,contact.sup00104@supplier.example.com
+SUP00105,Supplier_SUP00105,China,21,0.73,Probationary,90,contact.sup00105@supplier.example.com
+SUP00106,Supplier_SUP00106,India,10,0.92,Probationary,30,contact.sup00106@supplier.example.com
+SUP00107,Supplier_SUP00107,Thailand,21,0.76,Approved,60,contact.sup00107@supplier.example.com
+SUP00108,Supplier_SUP00108,South Korea,60,0.94,Probationary,45,contact.sup00108@supplier.example.com
+SUP00109,Supplier_SUP00109,Taiwan,10,0.67,Probationary,30,contact.sup00109@supplier.example.com
+SUP00110,Supplier_SUP00110,South Korea,14,0.84,Probationary,45,contact.sup00110@supplier.example.com
+SUP00111,Supplier_SUP00111,Taiwan,10,0.98,Strategic,90,contact.sup00111@supplier.example.com
+SUP00112,Supplier_SUP00112,Thailand,30,0.84,Strategic,90,contact.sup00112@supplier.example.com
+SUP00113,Supplier_SUP00113,Vietnam,60,0.75,Strategic,60,contact.sup00113@supplier.example.com
+SUP00114,Supplier_SUP00114,South Korea,14,0.64,Approved,60,contact.sup00114@supplier.example.com
+SUP00115,Supplier_SUP00115,South Korea,14,0.88,Probationary,60,contact.sup00115@supplier.example.com
+SUP00116,Supplier_SUP00116,China,21,0.56,Strategic,60,contact.sup00116@supplier.example.com
+SUP00117,Supplier_SUP00117,Germany,45,0.58,Strategic,30,contact.sup00117@supplier.example.com
+SUP00118,Supplier_SUP00118,Germany,10,0.92,Preferred,45,contact.sup00118@supplier.example.com
+SUP00119,Supplier_SUP00119,Vietnam,21,0.84,Preferred,90,contact.sup00119@supplier.example.com
+SUP00120,Supplier_SUP00120,USA,60,0.71,Strategic,45,contact.sup00120@supplier.example.com
+SUP00121,Supplier_SUP00121,USA,7,0.8,Approved,90,contact.sup00121@supplier.example.com
+SUP00122,Supplier_SUP00122,South Korea,45,0.64,Preferred,30,contact.sup00122@supplier.example.com
+SUP00123,Supplier_SUP00123,USA,60,0.85,Strategic,30,contact.sup00123@supplier.example.com
+SUP00124,Supplier_SUP00124,Japan,30,0.74,Approved,30,contact.sup00124@supplier.example.com
+SUP00125,Supplier_SUP00125,Mexico,45,0.7,Probationary,90,contact.sup00125@supplier.example.com
+SUP00126,Supplier_SUP00126,China,21,0.97,Probationary,45,contact.sup00126@supplier.example.com
+SUP00127,Supplier_SUP00127,South Korea,10,0.87,Approved,90,contact.sup00127@supplier.example.com
+SUP00128,Supplier_SUP00128,Taiwan,21,0.91,Approved,60,contact.sup00128@supplier.example.com
+SUP00129,Supplier_SUP00129,Germany,60,0.96,Approved,90,contact.sup00129@supplier.example.com
+SUP00130,Supplier_SUP00130,Germany,60,0.75,Probationary,60,contact.sup00130@supplier.example.com
+SUP00131,Supplier_SUP00131,India,21,0.92,Preferred,90,contact.sup00131@supplier.example.com
+SUP00132,Supplier_SUP00132,Germany,14,0.9,Approved,60,contact.sup00132@supplier.example.com
+SUP00133,Supplier_SUP00133,Thailand,45,0.94,Strategic,45,contact.sup00133@supplier.example.com
+SUP00134,Supplier_SUP00134,China,10,0.87,Probationary,45,contact.sup00134@supplier.example.com
+SUP00135,Supplier_SUP00135,Taiwan,45,0.86,Probationary,30,contact.sup00135@supplier.example.com
+SUP00136,Supplier_SUP00136,China,14,0.65,Preferred,60,contact.sup00136@supplier.example.com
+SUP00137,Supplier_SUP00137,Thailand,14,0.76,Approved,90,contact.sup00137@supplier.example.com
+SUP00138,Supplier_SUP00138,Mexico,14,0.7,Probationary,60,contact.sup00138@supplier.example.com
+SUP00139,Supplier_SUP00139,USA,14,0.65,Preferred,60,contact.sup00139@supplier.example.com
+SUP00140,Supplier_SUP00140,China,45,0.79,Preferred,45,contact.sup00140@supplier.example.com
+SUP00141,Supplier_SUP00141,Germany,45,0.76,Approved,30,contact.sup00141@supplier.example.com
+SUP00142,Supplier_SUP00142,Germany,14,0.65,Preferred,60,contact.sup00142@supplier.example.com
+SUP00143,Supplier_SUP00143,India,45,0.79,Approved,30,contact.sup00143@supplier.example.com
+SUP00144,Supplier_SUP00144,India,30,0.68,Preferred,90,contact.sup00144@supplier.example.com
+SUP00145,Supplier_SUP00145,China,60,0.56,Approved,90,contact.sup00145@supplier.example.com
+SUP00146,Supplier_SUP00146,Taiwan,21,0.7,Strategic,60,contact.sup00146@supplier.example.com
+SUP00147,Supplier_SUP00147,Taiwan,7,0.91,Probationary,90,contact.sup00147@supplier.example.com
+SUP00148,Supplier_SUP00148,China,30,0.83,Strategic,45,contact.sup00148@supplier.example.com
+SUP00149,Supplier_SUP00149,Vietnam,60,0.8,Approved,30,contact.sup00149@supplier.example.com
+SUP00150,Supplier_SUP00150,Germany,7,0.8,Probationary,45,contact.sup00150@supplier.example.com
+SUP00151,Supplier_SUP00151,Mexico,21,0.75,Probationary,60,contact.sup00151@supplier.example.com
+SUP00152,Supplier_SUP00152,Thailand,21,0.68,Strategic,30,contact.sup00152@supplier.example.com
+SUP00153,Supplier_SUP00153,Germany,45,0.64,Strategic,45,contact.sup00153@supplier.example.com
+SUP00154,Supplier_SUP00154,Germany,10,0.79,Preferred,30,contact.sup00154@supplier.example.com
+SUP00155,Supplier_SUP00155,South Korea,21,0.85,Probationary,60,contact.sup00155@supplier.example.com
+SUP00156,Supplier_SUP00156,India,10,0.68,Approved,90,contact.sup00156@supplier.example.com
+SUP00157,Supplier_SUP00157,China,45,0.65,Approved,45,contact.sup00157@supplier.example.com
+SUP00158,Supplier_SUP00158,South Korea,7,0.79,Preferred,60,contact.sup00158@supplier.example.com
+SUP00159,Supplier_SUP00159,Vietnam,7,0.58,Approved,60,contact.sup00159@supplier.example.com
+SUP00160,Supplier_SUP00160,Taiwan,7,0.76,Approved,90,contact.sup00160@supplier.example.com
+SUP00161,Supplier_SUP00161,USA,30,0.79,Probationary,30,contact.sup00161@supplier.example.com
+SUP00162,Supplier_SUP00162,Thailand,7,0.94,Approved,60,contact.sup00162@supplier.example.com
+SUP00163,Supplier_SUP00163,India,7,0.65,Strategic,60,contact.sup00163@supplier.example.com
+SUP00164,Supplier_SUP00164,Thailand,7,0.89,Preferred,90,contact.sup00164@supplier.example.com
+SUP00165,Supplier_SUP00165,Mexico,45,0.74,Approved,45,contact.sup00165@supplier.example.com
+SUP00166,Supplier_SUP00166,Thailand,21,0.83,Probationary,30,contact.sup00166@supplier.example.com
+SUP00167,Supplier_SUP00167,Taiwan,14,0.73,Approved,30,contact.sup00167@supplier.example.com
+SUP00168,Supplier_SUP00168,Vietnam,14,0.73,Probationary,60,contact.sup00168@supplier.example.com
+SUP00169,Supplier_SUP00169,South Korea,60,0.88,Strategic,90,contact.sup00169@supplier.example.com
+SUP00170,Supplier_SUP00170,China,14,0.66,Strategic,90,contact.sup00170@supplier.example.com
+SUP00171,Supplier_SUP00171,Mexico,60,0.98,Probationary,90,contact.sup00171@supplier.example.com
+SUP00172,Supplier_SUP00172,India,10,0.78,Probationary,90,contact.sup00172@supplier.example.com
+SUP00173,Supplier_SUP00173,India,10,0.67,Preferred,60,contact.sup00173@supplier.example.com
+SUP00174,Supplier_SUP00174,Taiwan,45,0.76,Strategic,45,contact.sup00174@supplier.example.com
+SUP00175,Supplier_SUP00175,Vietnam,14,0.79,Probationary,30,contact.sup00175@supplier.example.com
+SUP00176,Supplier_SUP00176,Germany,60,0.95,Probationary,30,contact.sup00176@supplier.example.com
+SUP00177,Supplier_SUP00177,Vietnam,21,0.96,Approved,60,contact.sup00177@supplier.example.com
+SUP00178,Supplier_SUP00178,South Korea,60,0.76,Probationary,45,contact.sup00178@supplier.example.com
+SUP00179,Supplier_SUP00179,Taiwan,30,0.61,Preferred,45,contact.sup00179@supplier.example.com
+SUP00180,Supplier_SUP00180,China,14,0.89,Probationary,60,contact.sup00180@supplier.example.com
+SUP00181,Supplier_SUP00181,Mexico,14,0.91,Approved,60,contact.sup00181@supplier.example.com
+SUP00182,Supplier_SUP00182,Thailand,30,0.99,Probationary,45,contact.sup00182@supplier.example.com
+SUP00183,Supplier_SUP00183,Taiwan,30,0.76,Approved,90,contact.sup00183@supplier.example.com
+SUP00184,Supplier_SUP00184,Taiwan,14,0.93,Preferred,90,contact.sup00184@supplier.example.com
+SUP00185,Supplier_SUP00185,Germany,60,0.89,Strategic,60,contact.sup00185@supplier.example.com
+SUP00186,Supplier_SUP00186,Taiwan,45,0.95,Probationary,90,contact.sup00186@supplier.example.com
+SUP00187,Supplier_SUP00187,Vietnam,21,0.97,Preferred,60,contact.sup00187@supplier.example.com
+SUP00188,Supplier_SUP00188,China,60,0.92,Strategic,90,contact.sup00188@supplier.example.com
+SUP00189,Supplier_SUP00189,India,45,0.61,Preferred,30,contact.sup00189@supplier.example.com
+SUP00190,Supplier_SUP00190,Taiwan,60,0.98,Approved,90,contact.sup00190@supplier.example.com
+SUP00191,Supplier_SUP00191,China,60,0.69,Probationary,60,contact.sup00191@supplier.example.com
+SUP00192,Supplier_SUP00192,Taiwan,60,0.79,Strategic,45,contact.sup00192@supplier.example.com
+SUP00193,Supplier_SUP00193,USA,10,0.88,Probationary,30,contact.sup00193@supplier.example.com
+SUP00194,Supplier_SUP00194,China,21,0.62,Approved,30,contact.sup00194@supplier.example.com
+SUP00195,Supplier_SUP00195,India,14,0.9,Approved,60,contact.sup00195@supplier.example.com
+SUP00196,Supplier_SUP00196,Japan,21,0.61,Probationary,45,contact.sup00196@supplier.example.com
+SUP00197,Supplier_SUP00197,Vietnam,10,0.58,Probationary,45,contact.sup00197@supplier.example.com
+SUP00198,Supplier_SUP00198,Taiwan,30,0.61,Probationary,60,contact.sup00198@supplier.example.com
+SUP00199,Supplier_SUP00199,Taiwan,14,0.84,Probationary,60,contact.sup00199@supplier.example.com

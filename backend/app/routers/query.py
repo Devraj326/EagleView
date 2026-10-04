@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/query", tags=["query"])
 class QueryRequest(BaseModel):
     question: str
     session_id: str | None = None
+    persona: str | None = None
 
 
 @router.post("")
@@ -26,6 +27,7 @@ def ask_question(body: QueryRequest, user: User = Depends(get_current_user)) -> 
         result = query_pipeline.ask_question(
             session, ctx, body.question, body.session_id,
             session_factory=snowpark_service.new_session,
+            persona=body.persona,
         )
     result["agent_log"] = entries
     return result

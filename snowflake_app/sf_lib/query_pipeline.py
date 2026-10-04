@@ -1,4 +1,5 @@
 import contextvars
+import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
@@ -10,6 +11,71 @@ from sf_lib.result_interpretation import interpret_results
 from sf_lib.sql_validator import SqlValidationError, validate_read_only_sql
 
 logger = logging.getLogger("app.query")
+
+# ── Supply-chain metric keywords — when ANY of these appear in the user
+#    question the pipeline routes through Cortex Analyst (semantic view)
+#    instead of freestyle domain-agent SQL, guaranteeing governed answers.
+_SC_METRIC_KEYWORDS = [
+    "on-time delivery", "on time delivery", "otd", "otd%",
+    "fill rate", "fill_rate", "fillrate",
+    "days of inventory", "doi", "inventory days", "inventory position",
+    "landed cost", "landed_cost", "total cost per unit",
+    "supplier scorecard", "supplier ranking", "supplier performance",
+    "supply chain health", "supply chain kpi", "sc kpi",
+]
+
+SEMANTIC_VIEW_NAME = "SC_SUPPLY_CHAIN"
+
+
+def _is_sc_metric_question(question: str) -> bool:
+    q_lower = question.lower()
+    return any(kw in q_lower for kw in _SC_METRIC_KEYWORDS)
+
+
+def _query_via_cortex_analyst(session, ctx: dict, question: str, persona: str | None = None) -> dict | None:
+    """Route the question through Cortex Analyst against the governed
+    semantic view.  Returns the first result set or None on failure."""
+    sv_fqn = f'"{ctx["database"]}"."{ctx["schema"]}"."{SEMANTIC_VIEW_NAME}"'
+    persona_hint = ""
+    if persona:
+        persona_hint = f" Answer from the perspective of the {persona} team."
+    full_question = question + persona_hint
+
+    try:
+        log(f"📊 Routing to Cortex Analyst (semantic view {SEMANTIC_VIEW_NAME}, persona={persona or 'default'})")
+        payload = json.dumps({
+            "messages": [{"role": "user", "content": [{"type": "text", "text": full_question}]}],
+            "semantic_view": sv_fqn,
+        }).replace("'", "''")
+
+        row = session.sql(
+            f"SELECT SNOWFLAKE.CORTEX.ANALYST_RUN('{payload}') AS RESP"
+        ).collect()
+
+        if not row:
+            return None
+        resp = json.loads(row[0]["RESP"])
+        # Analyst returns content blocks — find the SQL one and the text one
+        sql_text = None
+        answer_text = None
+        for block in resp.get("content", []):
+            if block.get("type") == "sql":
+                sql_text = block.get("statement", "")
+            elif block.get("type") == "text":
+                answer_text = block.get("text", "")
+
+        if sql_text:
+            log(f"📊 Cortex Analyst generated SQL, executing...")
+            result_rows = session.sql(sql_text).collect()
+            rows = [r.as_dict() for r in result_rows]
+            return {"sql": sql_text, "rows": rows, "answer": answer_text}
+        elif answer_text:
+            return {"sql": None, "rows": [], "answer": answer_text}
+        return None
+    except Exception as exc:
+        log(f"⚠️ Cortex Analyst failed, falling back to domain agents: {exc}")
+        logger.warning("Cortex Analyst call failed: %s", exc)
+        return None
 
 # Every response — success or short-circuit (clarification, no data, error,
 # entity not found, ...) — carries this full field set with sensible empty
@@ -108,6 +174,7 @@ def _dispatch_agents(
 def ask_question(
     session, ctx: dict, question: str, session_id: str | None,
     session_factory: Callable[[], object] | None = None,
+    persona: str | None = None,
 ) -> dict:
     session_id = session_id or conversation.new_session_id()
     metadata.append_message(session, ctx, session_id, "user", question)
@@ -117,6 +184,27 @@ def ask_question(
         answer = "You don't have any data loaded yet. Upload and confirm a file first, then come back and ask about it."
         metadata.append_message(session, ctx, session_id, "assistant", answer)
         return _response(session_id, answer, "error")
+
+    # ── GOVERNED PATH: route supply-chain metric questions through Cortex
+    #    Analyst against the semantic view instead of freestyle agent SQL.
+    if _is_sc_metric_question(question):
+        analyst_result = _query_via_cortex_analyst(session, ctx, question, persona)
+        if analyst_result is not None:
+            answer = analyst_result.get("answer") or "Here are the results from the governed semantic view."
+            sql_used = analyst_result.get("sql")
+            rows = analyst_result.get("rows", [])
+            metadata.append_message(
+                session, ctx, session_id, "assistant", answer,
+                sql_generated=sql_used or "",
+            )
+            return _response(
+                session_id, answer, "analytics",
+                result=rows,
+                sql=sql_used,
+                agents_consulted=["cortex_analyst (semantic view)"],
+                summary={"governed_by": SEMANTIC_VIEW_NAME, "persona": persona or "default"},
+            )
+        log("⚠️ Cortex Analyst unavailable, falling through to domain agents")
 
     catalog = catalog_service.build_dataset_catalog(session, ctx, domains)
     history = metadata.get_recent_history(session, ctx, session_id)
