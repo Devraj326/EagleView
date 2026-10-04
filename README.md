@@ -1,576 +1,291 @@
-# EagleView
+# EagleView — AI-Powered Supply Chain Intelligence Platform
 
-EagleView is a governed conversational analytics platform for supply-chain data. It turns raw files from different business systems into a shared domain model, routes questions to the right business specialists, and returns answers grounded in Snowflake data.
+> **Governed ontology + multi-agent analytics on Snowflake, built entirely with CoCo**
 
-This project was built for the [Snowflake CoCo CLI Hackathon - GCC Edition](https://hack2skill.com/event/cococlihack-gccedition/), for the **Supply Chain Ontology and Governed Conversational Analytics** challenge.
+Supply chain data is scattered across ERP, logistics, supplier, and IoT systems with inconsistent definitions. The same question — *"What is our on-time delivery rate?"* — yields different answers across teams because each team queries different tables with different logic.
 
-## The Problem
+EagleView solves this by combining **runtime flexibility** (any file, any domain, auto-discovered relationships) with **governed consistency** (semantic views, verified queries, Cortex Analyst) — so every team gets one trustworthy answer.
 
-Supply-chain information is usually distributed across ERP, order management, payments, logistics, product, customer, supplier, inventory, and warehouse systems. These systems use different names and definitions for related concepts. As a result, planning, procurement, finance, and logistics teams can ask what appears to be the same question and receive different answers.
+---
 
-EagleView creates a governed path from raw data to business meaning:
+## Hackathon Problem Statement
 
-1. Upload a CSV, Excel, or JSON file.
-2. Have an Orchestrator Agent identify the business domains represented in the file.
-3. Let domain-specific agents classify columns and propose a normalized schema.
-4. Review and edit the proposal before anything is loaded.
-5. Merge the confirmed data into persistent Snowflake domain tables.
-6. Ask questions in natural language and receive an answer, supporting rows, a timeline where applicable, and the agents consulted.
+> Build an industry ontology — a business entity and relationship model (Supplier → Part → Plant → Shipment → Order → Customer) — expressed as governed semantic views, so that a natural-language layer returns consistent, trustworthy answers grounded in shared definitions and metrics.
 
-## What Is Implemented
+### What EagleView Delivers
 
-- Multi-domain ingestion from CSV, XLS/XLSX, and JSON.
-- AI-assisted column classification with semantic types, target names, Snowflake types, nullability, key candidates, confidence, and inclusion flags.
-- One upload can be routed to multiple domains. Shared ID-like columns are propagated so domain tables remain joinable.
-- Human review and confirmation before schema changes and data loading.
-- Persistent domain tables that accumulate data across uploads and extend their schemas when new approved columns appear.
-- Primary-key-aware loading with `MERGE`; non-key data is appended.
-- Relationship discovery from approved foreign-key candidates and matching column names.
-- Seven specialized business agents plus a coordinating Orchestrator Agent, Query Understanding Agent, and Result Interpretation Agent.
-- MCP server integration for uploading data and asking governed natural-language questions from MCP clients.
-- Conversational query understanding for analytics, entity investigations, and clarification questions.
-- Parallel domain-agent investigation for entity questions such as an order or shipment story.
-- Read-only SQL validation, table allowlisting, conversation history, and result interpretation.
-- Per-user Snowflake schema scoping in the FastAPI application and viewer-to-schema mapping in the native Streamlit application.
-- React/Vite web UI and a Streamlit-in-Snowflake UI using the same `snowflake_app/sf_lib` pipeline.
-- Demo seeding from five bundled supply-chain files.
-
-## Supply-Chain Ontology
-
-The ontology is implemented as a living semantic layer rather than a fixed raw-table contract. `snowflake_app/sf_lib/domain_agents.py` defines the business domains, their persistent table names, and the concepts used for routing and classification. `APP_DATASET_COLUMNS` preserves the mapping from source column to business meaning and target column for each upload.
-
-### Core entities and domains
-
-| Business entity or concept | Domain agent | Persistent table | Example meaning |
-| --- | --- | --- | --- |
-| Customer | Customer Agent | `CUSTOMER_DATA` | Buyer identity, segment, location, account status |
-| Product / Part / SKU | Product Agent | `PRODUCT_DATA` | Catalog identity, category, brand, price |
-| Order / Order item | Order Agent | `ORDER_DATA` | Order lifecycle, quantities, prices, tax, discount, status |
-| Shipment / Delivery | Delivery Agent | `DELIVERY_DATA` | Carrier, destination, status, ETA, actual delivery, delay |
-| Payment / Financial transaction | Finance Agent | `FINANCIAL_DATA` | Amount, revenue, cost, payment status, refund, currency |
-| Supplier / Vendor | Supplier Agent | `SUPPLIER_DATA` | Procurement, lead time, supplier reliability and rating |
-| Inventory / Stock / Warehouse | Inventory Agent | `INVENTORY_DATA` | Quantity, stock level, reorder level, inventory value |
-
-### Relationships
-
-The current relationship model is discovered after loading a domain slice. A column is treated as a relationship candidate when it is marked as a foreign-key candidate or follows the ID naming convention, such as `ORDER_ID` or `CUSTOMER_ID`. If another ready domain table exposes the same column, EagleView stores a relationship in `APP_RELATIONSHIPS` with source agent, target agent, source column, target column, and confidence.
-
-The bundled demo data supports a practical chain such as:
-
-```mermaid
-flowchart LR
-	C[Customer] -->|CUSTOMER_ID| O[Order]
-	P[Product] -->|PRODUCT_ID| O
-	O -->|ORDER_ID| D[Delivery]
-	O -->|ORDER_ID| F[Payment / Finance]
-	S[Supplier] -->|SUPPLIER_ID| P
-	I[Inventory] -->|PRODUCT_ID| P
-```
-
-### Canonical metric vocabulary
-
-The agents recognize supply-chain metric concepts including:
-
-- **On-time delivery:** deliveries completed on or before the expected delivery date.
-- **Fill rate:** fulfilled quantity divided by requested or ordered quantity.
-- **Days of inventory:** available inventory divided by the relevant daily demand rate.
-- **Landed cost:** total acquisition cost including the applicable product, shipping, handling, duty, and other cost components available in the data.
-- Revenue, expense, margin, order volume, payment status, inventory value, lead time, delay, and supplier reliability.
-
-The live metric calculation is grounded in the uploaded columns and the generated read-only query. A deployment that requires audited enterprise KPI definitions should add explicit governed views or metric definitions for these formulas before production use; the current repository provides the domain tables, relationship catalog, semantic column mappings, and agent instructions that ground those calculations.
-
-- **Streamlit-in-Snowflake** (`snowflake_app/streamlit_app.py`) — real per-user Snowflake
-  logins, isolated by Snowflake's own RBAC.
-- **FastAPI + React** (`backend/`, `frontend/`) — one shared privileged connection, isolates
-  users via a dynamically provisioned schema name (`USER_<hash>`).
-
-| Layer | Tech |
+| Requirement | How We Address It |
 |---|---|
-| Agents / data | Snowflake Cortex Agents, Snowpark, stored procedures |
-| Backend | FastAPI (Python 3.12), SQLite for app metadata, Google Sign-In |
-| Frontend | React + TypeScript + Vite |
-| Ops / CLI | Snowflake CLI (`snow`) — inspect and test live agents from the terminal |
+| **Define the ontology** | Formal ER model: Supplier → Part → Plant → Purchase Order → Inbound Shipment → Order → Delivery → Customer |
+| **Encode as semantic views** | `SC_SUPPLY_CHAIN` semantic view with 9 verified queries for canonical metrics |
+| **Governed conversational analytics** | Cortex Analyst routes metric questions through the semantic view — same SQL every time |
+| **Cross-domain questions, one answer** | 12 domain agents collaborate via `AskAnotherAgent` (1-hop max) |
+| **Same metric across personas** | Built-in consistency proof: Planning, Procurement, Logistics all get identical results |
 
-## Architecture — `sf_lib` module map
+---
 
-One module, one responsibility, imported identically by both runtimes:
+## Architecture
 
-There are two user-facing implementations backed by the shared Snowflake library:
-
-```mermaid
-flowchart TD
-	U[User] --> R[React / Vite]
-	U --> S[Streamlit in Snowflake]
-	R --> F[FastAPI]
-	F --> L[snowflake_app/sf_lib]
-	S --> L
-	L --> O[Orchestrator Agent]
-	O --> D[Domain Agents]
-	D --> T[Persistent domain tables]
-	L --> M[Metadata and relationship tables]
-	L --> Q[Query Understanding]
-	Q --> D
-	D --> V[Read-only SQL procedure]
-	V --> I[Result Interpretation]
-	I --> A[Answer, rows, summary, timeline]
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  DATA SOURCES: ERP, Logistics, Supplier DBs, IoT, Spreadsheets │
+└────────────────────────┬────────────────────────────────────────┘
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  INGESTION LAYER (CoCo-built)                                   │
+│  File Upload → Orchestrator LLM (Cortex COMPLETE)               │
+│  → Splits columns across domains → Per-domain classification    │
+│  → Human-in-the-loop schema review → MERGE upsert into tables   │
+└────────────────────────┬────────────────────────────────────────┘
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  SNOWFLAKE DATA LAYER                                           │
+│                                                                 │
+│  Base Tables (11)              Dynamic Tables (5)               │
+│  SUPPLIER · PLANT · PARTS      SC_OTD_METRICS                  │
+│  PO · ORDER · DELIVERY         SC_FILL_RATE                    │
+│  CUSTOMER · PRODUCT             SC_INVENTORY_POSITION           │
+│  FINANCIAL · INBOUND_SHIPMENT   SC_LANDED_COST                 │
+│  INVENTORY_SNAPSHOT             SC_SUPPLIER_SCORECARD           │
+│                                                                 │
+│  Semantic View: SC_SUPPLY_CHAIN                                 │
+│  → 8 entity tables, 9 relationships, 9 verified queries        │
+│  → Canonical metrics: OTD%, Fill Rate, DOI, Landed Cost         │
+└────────────────────────┬────────────────────────────────────────┘
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  DUAL-PATH QUERY LAYER                                          │
+│                                                                 │
+│  GOVERNED PATH              │  EXPLORATORY PATH                 │
+│  Metric questions           │  Ad-hoc questions                 │
+│  → Cortex Analyst           │  → 12 Cortex Agents               │
+│  → Semantic View            │  → Agents write their own SQL     │
+│  → Verified Queries         │  → AskAnotherAgent (1-hop max)    │
+│  → SAME answer every time   │  → SQL validation (defense-in-    │
+│                             │    depth)                         │
+└────────────────────────┬────────────────────────────────────────┘
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  PRESENTATION LAYER                                             │
+│  React (Vercel) · Streamlit (Snowflake) · MCP Server            │
+│  Persona Selector: Planning / Procurement / Logistics           │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### FastAPI and React
+---
 
-The web deployment uses:
+## Supply Chain Ontology
 
-- **Backend:** FastAPI, Snowpark, Snowflake Connector, SQLAlchemy, JWT, Google authentication, and Gemini for the authentication/application path and supporting services.
-- **Frontend:** React 19, TypeScript, Vite, React Router, Recharts, and Lucide icons.
-- **Application metadata:** SQLite stores application users and conversation metadata for the web path.
-- **Analytical data:** Snowflake stores user-scoped domain data and the active metadata tables.
+### Entity-Relationship Model
 
-The backend entry point is [backend/app/main.py](backend/app/main.py). Active routers are [backend/app/routers/auth.py](backend/app/routers/auth.py), [backend/app/routers/datasets.py](backend/app/routers/datasets.py), and [backend/app/routers/query.py](backend/app/routers/query.py).
-
-### Native Streamlit application
-
-[snowflake_app/streamlit_app.py](snowflake_app/streamlit_app.py) runs the same ingestion and query pipeline inside Snowflake. It provides:
-
-- An onboarding page for file upload, demo seeding, AI analysis, schema review, and confirmation.
-- A dashboard with natural-language chat, domain status, summaries, timelines, tables, and charts when visualization metadata is returned.
-- An agent activity log for demonstrating the orchestration and tool calls.
-
-The native app is the simplest surface for a Snowflake-centered hackathon demonstration because it avoids a separate API database and runs the application beside the data platform.
-
-## Ingestion Flow
-
-The main implementation is [snowflake_app/sf_lib/ingestion_pipeline.py](snowflake_app/sf_lib/ingestion_pipeline.py).
-
-```mermaid
-sequenceDiagram
-	participant User
-	participant UI
-	participant O as Orchestrator Agent
-	participant C as Classifier
-	participant DA as Domain Agent
-	participant SF as Snowflake
-
-	User->>UI: Upload file
-	UI->>UI: Parse file and sample rows
-	UI->>O: Columns and sample rows
-	O-->>UI: Domain assignments
-	loop Each assigned domain
-		UI->>C: Domain slice and existing table schema
-		C-->>UI: Proposed semantic mapping
-		UI->>SF: Store proposal and confidence
-	end
-	User->>UI: Review and confirm mappings
-	UI->>DA: Confirm table schema
-	DA->>SF: Create or extend domain table
-	UI->>SF: Cast and load rows
-	UI->>SF: Detect and store relationships
+```
+Supplier ──1:N──▸ Part ──N:M──▸ Plant (via Inventory)
+    │                │
+    │              1:N
+    ▼                ▼
+Purchase Order ──▸ Inbound Shipment ──▸ Plant
+    │
+    ▼
+  Order ──1:1──▸ Delivery ──▸ Customer
+    │
+    ▼
+  Payment
 ```
 
-### Schema governance
+### Canonical Metrics (locked in verified queries)
 
-The review step is intentional. A model can propose a mapping, but the user controls:
+| Metric | Formula | Live Value |
+|---|---|---|
+| **On-Time Delivery %** | `delivered_on_time / total_delivered × 100` | 78.87% |
+| **Fill Rate %** | `shipped_qty / requested_qty × 100` | 92.10% |
+| **Days of Inventory** | `qty_on_hand / avg_daily_usage` | 3.3 days |
+| **Landed Cost** | `unit_cost + freight + duty + insurance` | ₹2,837/unit |
+| **Supplier Reliability (OTIF)** | `on_time_and_full_POs / total_POs × 100` | Per supplier |
 
-- Target column name.
-- Snowflake target type.
-- Nullability.
-- Whether the column is included.
-- Whether an existing or new column should be used.
+### 12 Domain Agents (Cortex Agents)
 
-Each proposal is retained in `APP_DATASET_COLUMNS`, including its source column, semantic type, confidence, key candidates, and source (`AI_SUGGESTED` or `USER_MODIFIED`).
+| Agent | Table | Domain |
+|---|---|---|
+| `inventory_agent` | INVENTORY_DATA | Stock levels, warehouse |
+| `customer_agent` | CUSTOMER_DATA | Customer profiles, segments |
+| `financial_agent` | FINANCIAL_DATA | Payments, transactions |
+| `order_agent` | ORDER_DATA | Sales orders, fulfillment |
+| `delivery_agent` | DELIVERY_DATA | Outbound logistics |
+| `product_agent` | PRODUCT_DATA | Product catalog |
+| `supplier_agent` | SUPPLIER_DATA | Supplier profiles, contracts |
+| `plant_agent` | PLANT_DATA | Plants, DCs, warehouses |
+| `parts_agent` | PARTS_DATA | Parts, BOM, components |
+| `purchase_order_agent` | PURCHASE_ORDER_DATA | Procurement, POs |
+| `inbound_shipment_agent` | INBOUND_SHIPMENT_DATA | Inbound freight |
+| `inventory_snapshot_agent` | INVENTORY_SNAPSHOT_DATA | Inventory positions |
 
-### Persistent loading
+Each agent is a **real Cortex Agent object** created via `SNOWFLAKE.CORTEX.DATA_AGENT_RUN()` with 3 tools:
+- **MergeDomainTable** — CREATE or ALTER TABLE via stored procedure
+- **RunDomainQuery** — Execute read-only SELECT queries
+- **AskAnotherAgent** — Cross-domain delegation (1-hop max via sub-agent architecture)
 
-Each domain has one persistent table per user schema. On the first load, the domain agent creates the table. Later approved uploads extend the table with new columns instead of replacing it. If a primary-key candidate exists, the loader deduplicates the incoming batch and merges it into the existing table. Otherwise, rows are appended as event or log data.
+---
 
-## Conversational Analytics Flow
+## CoCo Usage — Full Lifecycle
 
-The query implementation is [snowflake_app/sf_lib/query_pipeline.py](snowflake_app/sf_lib/query_pipeline.py).
+EagleView was built **entirely with Snowflake CoCo** (Cortex Code) across every phase:
 
-1. Create or reuse a conversation session.
-2. Save the user question in `APP_CONVERSATIONS`.
-3. Build a catalog from ready domain tables, live columns, row counts, and known relationships.
-4. Ask Query Understanding to classify the request as `analytics`, `entity_investigation`, or `clarification`.
-5. Select the relevant domain agent or agents.
-6. Ask agents to generate and execute read-only SQL through `RUN_SELECT_PROC`.
-7. For entity investigations, call relevant agents in parallel when independent Snowflake sessions are available.
-8. Validate the generated SQL against the current database, user schema, and allowed domain tables.
-9. Send accepted rows to the Result Interpretation Agent.
-10. Return the answer, raw result rows, summary, timeline, SQL, consulted agents, and missing information.
+### Planning
+- Codebase architecture analysis and gap identification
+- Entity-relationship model design
+- Implementation plan with judging criteria alignment
 
-The detailed request path is documented in [docs/query-flow.md](docs/query-flow.md).
+### Development
+- Synthetic data generation (11 CSVs, 81K+ rows, referentially consistent)
+- Semantic view YAML authoring (607 lines, 9 verified queries)
+- Dynamic table SQL creation (5 auto-refreshing metric tables)
+- Domain agent setup (24 Cortex Agents via `create_all_agents.py`)
+- Query pipeline update: Cortex Analyst governed path integration
+- Streamlit SC Command Center page with KPI ribbon and persona proof
+- Frontend persona selector and supply-chain-focused suggestions
 
-## Multi-Agent Question Answering
+### Execution
+- SQL execution against Snowflake (DDL, COPY INTO, queries)
+- Data loading via PUT + COPY INTO (11 tables)
+- Semantic view deployment via `cortex agent-studio sv-deploy`
+- Git commit and push to GitHub (auto-triggers Render + Vercel deploys)
 
-Multi-agent orchestration is a central part of EagleView. The platform does not send every question to one general-purpose chatbot. It first understands the question, identifies the business domains involved, asks the appropriate domain specialists to work against their governed tables, and then combines their evidence into one answer.
+### Testing
+- Canonical metric verification (all 4 KPIs returning expected values)
+- Cortex Agent response testing (ORDER_AGENT writes and executes own SQL)
+- Persona consistency proof (same metric → same answer across 3 personas)
 
-### Agent roles
+### Reusable CoCo Skills
+| Skill | Lines | Purpose |
+|---|---|---|
+| `eagleview` | 243 | Full architecture context — any CoCo session instantly knows the codebase |
+| `sc-metrics` | 113 | Canonical supply chain metric definitions — shareable across teams |
 
-| Agent | Responsibility |
-| --- | --- |
-| **Orchestrator Agent** | Splits an uploaded file across one or more domains and ensures shared identifier columns remain available for joins. |
-| **Query Understanding Agent** | Converts a natural-language question into intent, entity type, entity ID, metric, relevant tables, or one clarification question. |
-| **Inventory Agent** | Answers questions about stock, warehouses, reorder levels, and inventory value. |
-| **Customer Agent** | Answers questions about customers, segments, locations, and account status. |
-| **Finance Agent** | Answers questions about payments, revenue, expenses, margin, cost, and financial transactions. |
-| **Order Agent** | Answers questions about orders, products, quantities, prices, totals, and order status. |
-| **Delivery Agent** | Answers questions about shipments, carriers, ETA, delivery status, delays, and timelines. |
-| **Product Agent** | Answers questions about product catalog, SKU, category, brand, and price. |
-| **Supplier Agent** | Answers questions about vendors, procurement, lead time, and supplier reliability. |
-| **Result Interpretation Agent** | Converts accepted Snowflake results from one or more specialists into a concise business answer without inventing unavailable facts. |
+---
 
-Every domain has a primary Cortex Agent and a restricted `_SUB` agent. Primary agents can use `MergeDomainTable`, `RunDomainQuery`, and one-hop `AskAnotherAgent` delegation. Sub-agents can only run read-only queries, so delegation cannot recurse indefinitely.
+## Tech Stack
 
-### How a question is routed
+| Layer | Technology |
+|---|---|
+| **LLM** | Snowflake Cortex COMPLETE (llama3.1-70b) |
+| **Agents** | 24 Cortex Agents (12 primary + 12 sub) via `DATA_AGENT_RUN()` |
+| **Governed Analytics** | Cortex Analyst + Semantic View with Verified Queries |
+| **Derived Metrics** | 5 Dynamic Tables (`TARGET_LAG = '1 hour'`) |
+| **Data Loading** | MERGE-based upserts with PK deduplication |
+| **Backend** | FastAPI (Python) on Render |
+| **Frontend** | React + TypeScript + Recharts on Vercel |
+| **Streamlit** | Streamlit-in-Snowflake (3 pages) |
+| **MCP** | MCP server with 2 tools (upload_data, ask_question) |
+| **RBAC** | Per-user schema isolation, EXECUTE AS CALLER |
 
-```mermaid
-flowchart TD
-	A[User asks a natural-language question] --> B[Conversation history and governed catalog]
-	B --> C[Query Understanding Agent]
-	C --> D{Intent}
-	D -->|Ambiguous| E[Ask one clarification question]
-	D -->|Analytics| F[Choose primary relevant domain agent]
-	D -->|Entity investigation| G[Choose all relevant domain agents]
-	F --> H[Domain agent writes read-only SQL]
-	G --> I[Order, Delivery, Finance, Customer, or other agents query in parallel]
-	H --> J[RunDomainQuery]
-	I --> J
-	J --> K[Validate database, schema, table, and read-only scope]
-	K -->|Rejected| L[Return governed unavailable response]
-	K -->|Accepted| M[Result Interpretation Agent]
-	M --> N[Answer, evidence rows, summary, timeline, missing information]
+---
+
+## Key Innovation: Dual-Path Architecture
+
+Most solutions offer either governed analytics OR flexible exploration. EagleView offers **both**:
+
+**Governed Path** — When a user asks about a canonical supply chain metric (OTD%, fill rate, DOI, landed cost), the query routes through **Cortex Analyst** against the **semantic view**. The verified query produces the **same SQL every time**, regardless of who asks or which persona they select.
+
+**Exploratory Path** — When a user asks an ad-hoc question ("Tell me about order ORD100775"), the query routes through **domain agents** that write their own SQL, can delegate to other agents via `AskAnotherAgent`, and return flexible, contextual answers.
+
+**Runtime Relationship Discovery** — When users upload new data, the orchestrator discovers relationships at runtime by matching FK/PK columns across domains. This means any new data source can be onboarded without changing the ontology.
+
+This combination of governed consistency + runtime flexibility is EagleView's core value proposition.
+
+---
+
+## How It Works
+
+### 1. Data Onboarding
+Upload a CSV, Excel, or JSON file. The **Orchestrator Agent** (Cortex COMPLETE) analyzes the columns and splits them across the relevant domain agents. Each agent proposes a schema — seeing its existing table structure to reuse columns when possible. A human reviews and confirms. Data is loaded via MERGE-based upserts (no duplicates on re-upload).
+
+### 2. Supply Chain Command Center
+The SC Command Center page shows **live KPIs** from dynamic tables (OTD%, fill rate, DOI, landed cost). Users select a **persona** (Planning, Procurement, Logistics) and ask questions in natural language. Metric questions route through Cortex Analyst for governed answers.
+
+### 3. Persona Consistency Proof
+A built-in test fires the same metric question across all 3 personas and displays results side-by-side. All return identical values, proving the semantic view delivers consistent answers regardless of who asks.
+
+### 4. Ad-hoc Exploration
+The Dashboard page allows free-form questions. Domain agents write and execute their own SQL, can delegate across domains, and return rich answers with charts, timelines, and entity details.
+
+---
+
+## Repository Structure
+
 ```
-
-### Analytics questions
-
-For an aggregate question such as:
-
-> Which delivery partners had the best on-time delivery rate last month?
-
-the Query Understanding Agent identifies the delivery domain and the requested metric and period. The Delivery Agent receives the governed catalog, writes a read-only query against `DELIVERY_DATA`, and executes it through `RUN_SELECT_PROC`. The SQL validator checks the returned query before the Result Interpretation Agent summarizes the accepted rows.
-
-Analytics questions use a primary domain agent so a cross-domain metric is not fragmented into several incompatible partial answers. The selected agent can join another allowlisted domain table when a shared key is genuinely required.
-
-### Entity investigations
-
-For a question such as:
-
-> What happened with order 1234?
-
-the platform recognizes an `entity_investigation` intent and dispatches the question to every relevant specialist. The Order Agent can retrieve order facts, the Delivery Agent can retrieve shipment and delivery events, the Finance Agent can retrieve payment status, and the Customer Agent can retrieve customer context. Independent calls use separate Snowflake sessions and run in parallel.
-
-```mermaid
-sequenceDiagram
-	participant U as User
-	participant Q as Query Understanding
-	participant O as Order Agent
-	participant D as Delivery Agent
-	participant F as Finance Agent
-	participant R as Result Interpretation
-
-	U->>Q: What happened with order 1234?
-	Q-->>O: Investigate order 1234
-	Q-->>D: Find delivery events for order 1234
-	Q-->>F: Find payment facts for order 1234
-	par Independent domain investigations
-		O->>O: RunDomainQuery on ORDER_DATA
-		D->>D: RunDomainQuery on DELIVERY_DATA
-		F->>F: RunDomainQuery on FINANCIAL_DATA
-	end
-	O-->>R: Accepted order rows and SQL
-	D-->>R: Accepted delivery rows and SQL
-	F-->>R: Accepted payment rows and SQL
-	R-->>U: One grounded narrative, summary, and timeline
-```
-
-This is how EagleView creates one consistent answer from multiple operational systems while preserving the provenance of which agents and tables contributed to it.
-
-### Delegation between agents
-
-When a primary domain agent needs a fact that belongs exclusively to another domain, it may ask one other domain agent through `AskAnotherAgent`. The target is always a restricted `_SUB` agent with only `RunDomainQuery`; it cannot delegate again or mutate schemas. This gives the specialists a controlled way to collaborate without turning the question flow into unbounded agent recursion.
-
-### Governed behavior
-
-- Ambiguous questions produce one clarification question instead of speculative SQL.
-- Missing records produce a clear no-record response.
-- The result interpreter is instructed not to invent facts missing from the query results.
-- Generated SQL must be a single `SELECT` or `WITH` statement.
-- DDL and DML keywords are rejected by the validator.
-- Fully qualified references must stay within the configured database, user schema, and allowlisted domain tables.
-- Primary agents can delegate to one `_SUB` agent, while sub-agents cannot delegate further. This structurally limits recursive delegation.
-
-## MCP Integration
-
-EagleView includes a lightweight [Model Context Protocol](https://modelcontextprotocol.io/) server in [`mcp_server/`](mcp_server/). It makes the existing governed FastAPI capabilities available to Claude Desktop, Claude Code, or another MCP-compatible client without duplicating the ingestion or query pipeline.
-
-The MCP server intentionally exposes exactly two tools:
-
-| Tool | Purpose |
-| --- | --- |
-| `upload_data(filename, content_base64)` | Uploads a CSV, Excel, or JSON file, sends it through the Orchestrator Agent and domain-agent classification, accepts the proposed mappings for this machine-to-machine workflow, and loads the confirmed data into the appropriate Snowflake domain tables. |
-| `ask_question(question, session_id=None)` | Sends a natural-language question through the existing query-understanding, multi-agent routing, read-only SQL validation, and result-interpretation pipeline. Pass the returned `session_id` to continue a conversation. |
-
-### MCP request flow
-
-```mermaid
-sequenceDiagram
-	participant C as MCP Client
-	participant M as EagleView MCP Server
-	participant A as FastAPI Backend
-	participant O as Orchestrator / Domain Agents
-	participant Q as Query Pipeline
-	participant SF as Snowflake
-
-	C->>M: upload_data(filename, base64)
-	M->>A: Validate JWT and POST /api/datasets/upload
-	M->>A: POST /analyze
-	A->>O: Route columns and classify domains
-	O->>SF: Merge approved domain schemas and load rows
-	SF-->>M: Dataset and domain status
-	M-->>C: dataset_id and loaded domains
-
-	C->>M: ask_question(question, session_id?)
-	M->>A: POST /api/query with Bearer token
-	A->>Q: Understand, route, query, validate, interpret
-	Q->>SF: Read-only domain queries
-	SF-->>Q: Results and evidence
-	Q-->>M: Answer, agents, entity, session_id
-	M-->>C: Governed answer
-```
-
-### Authentication and guardrails
-
-The MCP server does not create a separate user system and does not accept arbitrary credentials. Set `EGLEVIEW_API_TOKEN` to a real JWT issued by the backend’s `/api/auth/demo` or `/api/auth/google` endpoint. Before the first tool call, the server validates that token against `/api/auth/me`; each subsequent request uses that authenticated EgleView identity.
-
-The server also validates inputs before forwarding them:
-
-- `upload_data` accepts only `.csv`, `.xlsx`, `.xls`, and `.json` files.
-- Upload content must be valid base64, non-empty, and no larger than 25 MB.
-- `ask_question` rejects empty questions and questions longer than 2,000 characters.
-- The MCP layer is a thin proxy; SQL validation, table allowlisting, domain routing, conversation history, and missing-data behavior remain in the core backend pipeline.
-
-### Run the MCP server locally
-
-Start the FastAPI backend first, then install and run the MCP server:
-
-```bash
-cd mcp_server
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Set a real JWT returned by the backend login endpoint.
-export EGLEVIEW_API_TOKEN="<your-eagleview-jwt>"
-export EGLEVIEW_API_BASE_URL="http://localhost:8001"
-python server.py
-```
-
-On Windows PowerShell:
-
-```powershell
-cd mcp_server
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-$env:EGLEVIEW_API_TOKEN = "<your-eagleview-jwt>"
-$env:EGLEVIEW_API_BASE_URL = "http://localhost:8001"
-python server.py
-```
-
-The server uses stdio transport, so configure your MCP client to launch `mcp_server/server.py` with these two environment variables. See [mcp_server/README.md](mcp_server/README.md) for the token bootstrap example and client configuration notes.
-
-## Demo Data
-
-The same five files are available in the repository root, `backend/demo_data/`, and `snowflake_app/demo_data/`:
-
-| File | Main business content |
-| --- | --- |
-| `customers.csv` | Customer IDs, names, email, signup date, city, segment, account status |
-| `products.csv` | Product IDs, names, categories, brands, descriptions, unit prices |
-| `orders.csv` | Orders, customers, products, quantities, prices, discounts, tax, totals, dates, statuses |
-| `payments.csv` | Order and customer IDs, payment method and status, payment date, transaction ID, amount |
-| `deliveries.csv` | Order and customer IDs, locations, status, carrier/partner, driver, ETA, actual delivery date |
-
-The UI's **Load demo datasets** action sends these files through the real orchestration, classification, review/merge, and loading pipeline. It is not a hardcoded answer path.
-
-Useful demo questions include:
-
-- `What were total sales by customer segment?`
-- `Which products generated the most revenue?`
-- `What happened with order 1234?`
-- `Which orders were delivered late?`
-- `Show the payment and delivery status for order 1234.`
-- `Compare delivery performance across delivery partners.`
-
-The exact available identifiers depend on the bundled data that has been loaded.
-
-## API
-
-The FastAPI application exposes:
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/health` | Health check |
-| `POST` | `/api/auth/google` | Exchange a Google ID token for an application JWT |
-| `POST` | `/api/auth/demo` | Sign in as a configured demo user |
-| `GET` | `/api/auth/me` | Return the current user |
-| `POST` | `/api/datasets/upload` | Upload and register a dataset |
-| `POST` | `/api/datasets/seed-demo` | Load the five demo datasets |
-| `POST` | `/api/datasets/{dataset_id}/analyze` | Analyze and propose domain mappings |
-| `POST` | `/api/datasets/{dataset_id}/confirm` | Confirm mappings and load data |
-| `GET` | `/api/datasets` | List datasets and ready domains |
-| `GET` | `/api/datasets/{dataset_id}/status` | Read dataset status |
-| `DELETE` | `/api/datasets/{dataset_id}` | Delete dataset metadata |
-| `POST` | `/api/query` | Ask a natural-language question |
-
-## Snowflake Objects
-
-The per-user schema contains metadata tables created by [snowflake_app/sf_lib/metadata.py](snowflake_app/sf_lib/metadata.py):
-
-- `APP_DATASETS`
-- `APP_DATASET_DOMAINS`
-- `APP_DATASET_COLUMNS`
-- `APP_RELATIONSHIPS`
-- `APP_CONVERSATIONS`
-
-The domain-agent setup creates shared procedures and agents in `EGLE_VIEW.PUBLIC` by default:
-
-- `MERGE_TABLE_PROC` - creates or extends a domain table.
-- `RUN_SELECT_PROC` - executes the agent's read-only query tool.
-- `ASK_AGENT_PROC` - performs one-hop delegation to a restricted sub-agent.
-- Seven primary agents and seven `_SUB` agents, one pair per registered domain.
-
-## Local Development
-
-### Prerequisites
-
-- Python 3.12 or a compatible Python 3 runtime.
-- Node.js and npm.
-- A Snowflake account, warehouse, database, and credentials.
-- A Gemini API key if using the FastAPI application's Gemini-backed services.
-- A Google OAuth client ID if using Google login. Demo login can be used for local demonstrations.
-
-### Backend
-
-From the repository root:
-
-```powershell
-cd backend
-py -m venv .venv
-\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env
-uvicorn app.main:app --reload
-```
-
-Fill in the Snowflake and model values in `backend/.env`. The important variables are:
-
-```text
-JWT_SECRET
-APP_DB_URL
-CORS_ORIGINS
-ALLOW_DEMO_LOGIN
-GOOGLE_CLIENT_ID
-GEMINI_API_KEY
-GEMINI_MODEL
-SNOWFLAKE_ACCOUNT
-SNOWFLAKE_USER
-SNOWFLAKE_PASSWORD
-SNOWFLAKE_ROLE
-SNOWFLAKE_WAREHOUSE
-SNOWFLAKE_DATABASE
-MAX_UPLOAD_MB
-```
-
-The backend defaults to `ANALYTICS_DB` in its environment example. The Snowflake-native scripts default to `EGLE_VIEW`. Choose one database and use it consistently when provisioning agents, roles, and application settings.
-
-### Frontend
-
-```powershell
-cd frontend
-npm install
-npm run dev
-```
-
-The Vite development server normally runs at `http://localhost:5173`. Set the frontend API base URL and Google client ID in the frontend environment file used by the application.
-
-For a production build:
-
-```powershell
-npm run build
-```
-
-### Snowflake-native deployment
-
-The native deployment is intended to be run with Snowflake credentials available to the backend connector:
-
-1. Run [snowflake_app/setup_rbac.sql](snowflake_app/setup_rbac.sql) as an administrative role and replace the placeholder passwords.
-2. Review the `DATABASE`, `SCHEMA`, and warehouse constants in [snowflake_app/setup_domain_agents.py](snowflake_app/setup_domain_agents.py).
-3. Run `setup_domain_agents.py` to create shared procedures and the primary/sub-agent pairs.
-4. Run [snowflake_app/deploy.py](snowflake_app/deploy.py) to stage the Streamlit files and create or update `EGLE_VIEW.PUBLIC.DATAMIND`.
-5. Grant the Streamlit object to the demo roles, as shown in `setup_rbac.sql` and `deploy.py`.
-6. Open the Streamlit app in Snowsight and load the demo data.
-
-The scripts currently contain Unix-oriented example commands in their docstrings. On Windows, activate the virtual environment with PowerShell and invoke the scripts with `python`.
-
-## CoCo Hackathon Workflow
-
-EagleView is designed to demonstrate CoCo across the full lifecycle requested by the challenge:
-
-| Phase | Demonstration in this repository |
-| --- | --- |
-| Planning | Explore the bundled supply-chain data, identify domains and relationships, and define the ontology before loading it. |
-| Development | Use CoCo to build and iterate on the ingestion pipeline, domain agents, procedures, semantic catalog, and application surfaces. |
-| Execution | Run the Streamlit app or FastAPI plus React, seed data, onboard additional files, and ask cross-domain questions. |
-| Testing and validation | Review proposed mappings, inspect activity logs, validate generated SQL, test missing data and clarification paths, and compare the same question across personas. |
-| Synthetic data | Use the bundled non-production demo data or generate additional referentially consistent files before loading them. |
-| Multi-agent orchestration | Use the Orchestrator Agent, specialized domain agents, one-hop sub-agent delegation, Query Understanding, and Result Interpretation. |
-| Guardrails | Require confirmation before loading, restrict generated SQL, preserve conversation context, expose missing information, and stop recursive delegation. |
-
-### Persona consistency demo
-
-To demonstrate a shared definition across planning, procurement, and logistics:
-
-1. Load the same data into the governed domain tables.
-2. Ask the same metric question from each persona or session, such as on-time delivery by supplier or delivery partner.
-3. Show that the query is grounded in the same catalog, relationships, domain tables, and accepted SQL rules.
-4. Compare the result rows and answer summaries, then inspect the agent log to show which specialists were consulted.
-
-## Repository Map
-
-```text
 EagleView/
-├── backend/                 FastAPI application and Python dependencies
-│   ├── app/                 API, auth, configuration, and service modules
-│   └── demo_data/           Bundled input files
-├── frontend/                React/Vite web client
-│   └── vercel.json           Vercel deployment configuration
-├── mcp_server/               MCP stdio server exposing upload_data and ask_question
-│   ├── server.py             Authenticated, validated FastAPI proxy
-│   ├── requirements.txt      MCP SDK and HTTP client dependencies
-│   └── README.md             MCP setup and client configuration
-├── snowflake_app/           Native Streamlit deployment
-│   ├── sf_lib/              Shared ingestion, ontology, agents, and query logic
-│   ├── demo_data/           Data staged with the Streamlit app
-│   ├── setup_rbac.sql       Demo roles, users, schemas, and grants
-│   ├── setup_domain_agents.py  Procedures and Cortex Agent definitions
-│   └── deploy.py            Stage and Streamlit deployment script
-├── docs/query-flow.md       Detailed conversational query diagrams
-├── snowflake_app/snow_cli_tools.sh  Snowflake CLI helper commands
-└── render.yaml              Render backend deployment configuration
+├── .cortex/skills/
+│   ├── eagleview/SKILL.md          Full architecture CoCo skill (243 lines)
+│   └── sc-metrics/SKILL.md         Reusable metric definitions skill (113 lines)
+├── backend/
+│   ├── app/
+│   │   ├── main.py                 FastAPI entry point
+│   │   ├── routers/                API endpoints (auth, datasets, query)
+│   │   └── services/               snowpark_service.py (active), others (legacy)
+│   └── demo_data/                  Supply chain CSVs (11 files)
+├── frontend/
+│   └── src/
+│       ├── pages/                  DashboardPage (persona selector), OnboardingPage
+│       ├── components/             ResultView, SchemaMappingTable, charts
+│       └── lib/                    API client, TypeScript types
+├── snowflake_app/
+│   ├── sf_lib/                     THE ACTIVE CODEBASE
+│   │   ├── domain_agents.py        12 agent registry with table names
+│   │   ├── query_pipeline.py       Dual-path: Cortex Analyst + domain agents
+│   │   ├── ingestion_pipeline.py   3-stage: upload → analyze → confirm
+│   │   ├── orchestrator.py         Multi-domain column splitter
+│   │   ├── classification.py       Per-domain schema classifier
+│   │   ├── schema_service.py       MERGE upsert + relationship detection
+│   │   ├── sql_validator.py        Read-only SQL validation
+│   │   └── ...                     metadata, catalog, conversation, RBAC
+│   ├── ontology/
+│   │   └── sc_supply_chain.sv.yaml Semantic view YAML (607 lines)
+│   ├── streamlit_app.py            3-page app (Onboard, Dashboard, SC Command Center)
+│   ├── setup_domain_agents.py      Stored procs + agent DDL
+│   ├── setup_dynamic_tables.py     5 dynamic tables
+│   ├── setup_semantic_view.py      Semantic view deployment
+│   ├── generate_sc_data.py         Synthetic data generator
+│   ├── create_all_agents.py        Batch agent creation
+│   └── demo_data/                  Supply chain CSVs (11 files)
+├── mcp_server/
+│   └── server.py                   MCP proxy (upload_data, ask_question)
+└── docs/                           Architecture diagrams, query flow docs
 ```
 
-## Current Boundaries and Production Hardening
+---
 
-This is a hackathon-ready reference implementation. The following points should be addressed before production deployment:
+## Deployment
 
-- The FastAPI path uses a configured Snowflake role and application-level schema scoping; it is not identical to native per-user Snowflake grants.
-- The classic warehouse-runtime Streamlit deployment also applies viewer-to-schema isolation in application code. `sf_lib/rbac.py` currently maps `DEMO_USER_A` to `DEMO_A` and `DEMO_USER_B` to `DEMO_B`.
-- `EGLE_VIEW` is hardcoded in the native app and setup scripts, while the backend example uses `ANALYTICS_DB`; these must be aligned for a combined deployment.
-- `RUN_SELECT_PROC` checks that the query begins with `SELECT` or `WITH`; the broader database, schema, and table allowlist validation occurs afterward in the application pipeline. A production design should enforce the full scope before execution.
-- Dataset deletion removes metadata rows but does not remove persistent domain-table rows or raw uploaded files.
-- SQLite metadata and local raw-file storage are ephemeral on a basic Render deployment.
-- `MAX_UPLOAD_MB` is documented in configuration, while the active shared ingestion module currently uses a 25 MB limit.
-- No automated test suite is checked into the repository. SQL validation, schema isolation, ingestion casting, relationship discovery, and agent response paths should have regression tests before production use.
-- The current implementation grounds metric generation in normalized domain tables and catalog relationships. Explicit Snowflake semantic views or governed metric objects should be added when audited, reusable KPI definitions are required.
+| Surface | URL / Location | Auto-deploys from |
+|---|---|---|
+| **Frontend** | https://eagle-view-ten.vercel.app/ | GitHub push |
+| **Backend** | Render (see `render.yaml`) | GitHub push |
+| **Streamlit** | `EGLE_VIEW.PUBLIC.DATAMIND` | `deploy.py` script |
+| **Snowflake Objects** | `EGLE_VIEW.DEMO_A` (tables, dynamic tables, semantic view) | Setup scripts |
+| **Cortex Agents** | `EGLE_VIEW.PUBLIC` (24 agents) | `create_all_agents.py` |
+
+### Setup Order
+```bash
+# 1. Generate synthetic supply chain data
+python snowflake_app/generate_sc_data.py
+
+# 2. Create stored procedures and all 24 Cortex Agents
+python snowflake_app/create_all_agents.py
+
+# 3. Load data into Snowflake tables
+python snowflake_app/load_data.py
+
+# 4. Create dynamic tables for derived metrics
+python snowflake_app/setup_dynamic_tables.py DEMO_A
+
+# 5. Deploy semantic view
+python snowflake_app/setup_semantic_view.py DEMO_A
+
+# 6. Deploy Streamlit app
+python snowflake_app/deploy.py
+```
+
+---
 
 ## License
 
