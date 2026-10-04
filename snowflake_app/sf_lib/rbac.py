@@ -33,7 +33,11 @@ class UnrecognizedViewerError(Exception):
 
 
 def current_context(session) -> dict:
-    viewer = st.user.user_name if hasattr(st.user, "user_name") else None
+    user = getattr(st, "user", None)
+    viewer = getattr(user, "user_name", None)
+    if not viewer:
+        legacy_user = getattr(st, "experimental_user", None)
+        viewer = getattr(legacy_user, "user_name", None)
     if not viewer:
         # st.user.user_name is populated by the Snowsight/SiS runtime only —
         # a plain local `streamlit run` has no such identity. Fall back to a

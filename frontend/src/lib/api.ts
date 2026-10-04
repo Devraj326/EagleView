@@ -113,9 +113,9 @@ export const api = {
 
   deleteDataset: (id: string) => request<{ deleted: boolean }>(`/api/datasets/${id}`, { method: "DELETE" }),
 
-  ask: (question: string, sessionId: string | null) =>
+  ask: (question: string, sessionId: string | null, persona?: string | null) =>
     request<QueryResponse>("/api/query", {
       method: "POST",
-      body: JSON.stringify({ question, session_id: sessionId }),
+      body: JSON.stringify({ question, session_id: sessionId, persona: persona || null }),
     }),
 };

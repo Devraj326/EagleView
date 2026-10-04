@@ -167,6 +167,7 @@ Auth via `EGLEVIEW_API_TOKEN` env var (JWT). No direct Snowflake access.
 4. **Two-tier agent recursion prevention**: Sub-agents lack `AskAnotherAgent`, structurally capping cross-domain delegation at 1 hop.
 5. **Parallel agent dispatch**: Entity investigations query multiple domain agents concurrently via ThreadPoolExecutor with independent Snowpark sessions.
 6. **Defense-in-depth SQL validation**: Both application-level validator and stored procedure validate SQL independently.
+<<<<<<< Updated upstream
 ---
 name: eagleview
 description: How to work safely and correctly in the EgleView multi-agent Snowflake Cortex codebase — architecture, conventions, and hard constraints discovered through real testing against the live account.
@@ -241,3 +242,78 @@ state both paths read/write.
 session (SQL validator, orchestrator routing post-processing). Anything touching real Cortex
 Agents has to be verified live — against the account, not mocked — because the quirks above
 were themselves only discoverable that way.
+=======
+7. **Dual-path query architecture**: Supply chain metric questions route through Cortex Analyst (governed semantic view) for guaranteed consistency; ad-hoc questions route through domain agents for flexibility.
+
+---
+
+## Supply Chain Ontology Layer
+
+### Entity-Relationship Model
+```
+Supplier ──1:N──▸ Part ──N:M──▸ Plant (via Inventory)
+    │                │
+    │              1:N
+    ▼                ▼
+Purchase Order ──▸ Inbound Shipment ──▸ Plant
+    │
+    ▼
+  Order ──1:1──▸ Outbound Delivery ──▸ Customer
+    │
+    ▼
+  Payment
+```
+
+### Domain Agents (12 total: 7 original + 5 new)
+| Agent Key | Table Name | New? |
+|---|---|---|
+| `inventory_agent` | `INVENTORY_DATA` | No |
+| `customer_agent` | `CUSTOMER_DATA` | No |
+| `financial_agent` | `FINANCIAL_DATA` | No |
+| `order_agent` | `ORDER_DATA` | No |
+| `delivery_agent` | `DELIVERY_DATA` | No |
+| `product_agent` | `PRODUCT_DATA` | No |
+| `supplier_agent` | `SUPPLIER_DATA` | No |
+| `plant_agent` | `PLANT_DATA` | Yes |
+| `parts_agent` | `PARTS_DATA` | Yes |
+| `purchase_order_agent` | `PURCHASE_ORDER_DATA` | Yes |
+| `inbound_shipment_agent` | `INBOUND_SHIPMENT_DATA` | Yes |
+| `inventory_snapshot_agent` | `INVENTORY_SNAPSHOT_DATA` | Yes |
+
+### Dynamic Tables (auto-refresh derived metrics)
+| Table | What it computes |
+|---|---|
+| `SC_OTD_METRICS` | On-Time Delivery % by carrier, plant, month |
+| `SC_FILL_RATE` | Fill Rate % by plant, product, month |
+| `SC_INVENTORY_POSITION` | Latest inventory snapshot + Days of Inventory per part/plant |
+| `SC_LANDED_COST` | Landed cost per PO line (unit_cost + freight + duty + insurance) |
+| `SC_SUPPLIER_SCORECARD` | Supplier performance: OTD%, fill rate, lead time, landed cost |
+
+### Semantic View: `SC_SUPPLY_CHAIN`
+Governed semantic view encoding the full ontology with verified queries for canonical metrics. Located at `snowflake_app/ontology/sc_supply_chain.sv.yaml`.
+
+**Verified queries (canonical — same SQL every time):**
+- `on_time_delivery_overall` — Overall OTD%
+- `on_time_delivery_by_carrier` — OTD% by carrier
+- `fill_rate_overall` — Overall fill rate
+- `fill_rate_by_plant` — Fill rate by plant
+- `days_of_inventory_by_plant` — DOI by plant
+- `landed_cost_by_supplier` — Landed cost by supplier
+- `landed_cost_by_commodity` — Landed cost by commodity group
+- `supplier_scorecard_ranking` — Supplier performance ranking
+- `supply_chain_health_summary` — All 4 KPIs in one query
+
+### Cortex Analyst Integration (`query_pipeline.py`)
+When a question matches supply chain metric keywords (OTD, fill rate, DOI, landed cost, supplier scorecard), the pipeline routes through `SNOWFLAKE.CORTEX.ANALYST_RUN()` against the semantic view instead of dispatching domain agents. This guarantees governed, consistent answers. Falls back to domain agents if Cortex Analyst is unavailable.
+
+### Persona Consistency
+The Streamlit app's "SC Command Center" page and React frontend's persona selector allow users to query as Planning, Procurement, or Logistics. A built-in consistency proof fires the same metric query across all 3 personas and compares results side-by-side.
+
+### Setup Scripts
+| Script | Purpose |
+|---|---|
+| `generate_sc_data.py` | Generates all supply chain synthetic CSVs |
+| `setup_dynamic_tables.py` | Creates the 5 dynamic tables |
+| `setup_semantic_view.py` | Deploys the semantic view to Snowflake |
+| `setup_domain_agents.py` | Creates all Cortex Agent objects (reads from domain_agents.py) |
+>>>>>>> Stashed changes

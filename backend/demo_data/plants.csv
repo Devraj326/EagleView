@@ -1,0 +1,31 @@
+plant_id,plant_name,city,country,plant_type,capacity_units
+PLT0000,Mumbai Manufacturing,Mumbai,India,Manufacturing,100000
+PLT0001,Delhi Distribution Center,Delhi,India,Distribution Center,10000
+PLT0002,Chennai 3PL Warehouse,Chennai,India,3PL Warehouse,5000
+PLT0003,Bengaluru Manufacturing,Bengaluru,India,Manufacturing,50000
+PLT0004,Hyderabad Distribution Center,Hyderabad,India,Distribution Center,20000
+PLT0005,Pune 3PL Warehouse,Pune,India,3PL Warehouse,100000
+PLT0006,Ahmedabad Manufacturing,Ahmedabad,India,Manufacturing,20000
+PLT0007,Kolkata Distribution Center,Kolkata,India,Distribution Center,50000
+PLT0008,Jaipur 3PL Warehouse,Jaipur,India,3PL Warehouse,20000
+PLT0009,Coimbatore Manufacturing,Coimbatore,India,Manufacturing,50000
+PLT0010,Shanghai Distribution Center,Shanghai,China,Distribution Center,20000
+PLT0011,Shenzhen 3PL Warehouse,Shenzhen,China,3PL Warehouse,10000
+PLT0012,Ho Chi Minh City Manufacturing,Ho Chi Minh City,Vietnam,Manufacturing,50000
+PLT0013,Hanoi Distribution Center,Hanoi,Vietnam,Distribution Center,50000
+PLT0014,Frankfurt 3PL Warehouse,Frankfurt,Germany,3PL Warehouse,5000
+PLT0015,Munich Manufacturing,Munich,Germany,Manufacturing,10000
+PLT0016,Chicago Distribution Center,Chicago,USA,Distribution Center,50000
+PLT0017,Los Angeles 3PL Warehouse,Los Angeles,USA,3PL Warehouse,100000
+PLT0018,Tokyo Manufacturing,Tokyo,Japan,Manufacturing,20000
+PLT0019,Osaka Distribution Center,Osaka,Japan,Distribution Center,100000
+PLT0020,Seoul 3PL Warehouse,Seoul,South Korea,3PL Warehouse,20000
+PLT0021,Taipei Manufacturing,Taipei,Taiwan,Manufacturing,20000
+PLT0022,Monterrey Distribution Center,Monterrey,Mexico,Distribution Center,5000
+PLT0023,Guadalajara 3PL Warehouse,Guadalajara,Mexico,3PL Warehouse,50000
+PLT0024,Bangkok Manufacturing,Bangkok,Thailand,Manufacturing,20000
+PLT0025,Surat Distribution Center,Surat,India,Distribution Center,5000
+PLT0026,Nagpur 3PL Warehouse,Nagpur,India,3PL Warehouse,100000
+PLT0027,Lucknow Manufacturing,Lucknow,India,Manufacturing,5000
+PLT0028,Kochi Distribution Center,Kochi,India,Distribution Center,100000
+PLT0029,Chandigarh 3PL Warehouse,Chandigarh,India,3PL Warehouse,50000

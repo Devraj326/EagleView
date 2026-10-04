@@ -84,7 +84,7 @@ with st.sidebar:
     st.caption(f"Signed in as **{ctx['user']}**")
     st.caption(f"Schema: `{ctx['database']}.{ctx['schema']}`")
     st.divider()
-    page = st.radio("Navigate", ["Onboard data", "Dashboard"], label_visibility="collapsed")
+    page = st.radio("Navigate", ["Onboard data", "Dashboard", "SC Command Center"], label_visibility="collapsed")
     st.divider()
 
     agent_log = st.session_state.get("agent_log", [])
@@ -338,7 +338,120 @@ def render_response(response: dict):
         st.caption("Not available in your data: " + ", ".join(missing))
 
 
+def render_sc_command_center():
+    st.title("Supply Chain Command Center")
+    st.caption(
+        "Governed analytics powered by semantic views + Cortex Analyst. "
+        "Same metric → same answer, regardless of which persona asks."
+    )
+
+    # ── Persona selector ──
+    personas = ["Planning", "Procurement", "Logistics"]
+    sel_persona = st.selectbox("Select your persona", personas, index=0)
+
+    # ── KPI ribbon — live from dynamic tables ──
+    st.markdown("### Key Supply Chain KPIs")
+    kpi_cols = st.columns(4)
+    try:
+        fq = f'"{ctx["database"]}"."{ctx["schema"]}"'
+        # OTD%
+        otd_row = session.sql(f"""
+            SELECT ROUND(SUM(on_time_count)*100.0/NULLIF(SUM(total_delivered),0),2) AS v
+            FROM {fq}."SC_OTD_METRICS"
+        """).collect()
+        kpi_cols[0].metric("On-Time Delivery %", f"{otd_row[0]['V']}%" if otd_row and otd_row[0]['V'] else "N/A")
+
+        # Fill Rate
+        fr_row = session.sql(f"""
+            SELECT ROUND(SUM(total_shipped)*100.0/NULLIF(SUM(total_requested),0),2) AS v
+            FROM {fq}."SC_FILL_RATE"
+        """).collect()
+        kpi_cols[1].metric("Fill Rate %", f"{fr_row[0]['V']}%" if fr_row and fr_row[0]['V'] else "N/A")
+
+        # DOI
+        doi_row = session.sql(f"""
+            SELECT ROUND(AVG(days_of_inventory),1) AS v
+            FROM {fq}."SC_INVENTORY_POSITION" WHERE days_of_inventory IS NOT NULL
+        """).collect()
+        kpi_cols[2].metric("Avg Days of Inventory", doi_row[0]['V'] if doi_row and doi_row[0]['V'] else "N/A")
+
+        # Landed Cost
+        lc_row = session.sql(f"""
+            SELECT ROUND(AVG(landed_cost_per_unit),2) AS v FROM {fq}."SC_LANDED_COST"
+        """).collect()
+        kpi_cols[3].metric("Avg Landed Cost/Unit", f"₹{lc_row[0]['V']}" if lc_row and lc_row[0]['V'] else "N/A")
+    except Exception as exc:
+        st.warning(f"KPI load failed (dynamic tables may not exist yet): {exc}")
+
+    st.divider()
+
+    # ── Governed chat ──
+    st.markdown("### Ask a supply chain question")
+    sc_question = st.chat_input("e.g. What is the on-time delivery % by carrier?")
+    if sc_question:
+        with st.spinner(f"Querying as {sel_persona} via Cortex Analyst + semantic view…"):
+            response = query_pipeline.ask_question(
+                session, ctx, sc_question, st.session_state.chat_session_id,
+                session_factory=session_factory,
+                persona=sel_persona,
+            )
+        st.session_state.chat_session_id = response["session_id"]
+
+        st.write(response.get("answer", ""))
+        agents = response.get("agents_consulted", [])
+        if agents:
+            st.caption(f"Routed via: {', '.join(agents)}")
+        summary = response.get("summary")
+        if summary:
+            st.caption(f"Governed by: {summary.get('governed_by', 'N/A')} | Persona: {summary.get('persona', 'N/A')}")
+        result = response.get("result", [])
+        if result:
+            st.dataframe(pd.DataFrame(result), hide_index=True, use_container_width=True)
+        if response.get("sql"):
+            with st.expander("Generated SQL"):
+                st.code(response["sql"], language="sql")
+
+    st.divider()
+
+    # ── Persona consistency proof ──
+    st.markdown("### Persona Consistency Proof")
+    st.caption("Fire the same metric question across all 3 personas and compare results.")
+    proof_question = st.text_input("Metric question to test", value="What is the overall on-time delivery percentage?")
+    if st.button("Run consistency test", type="primary"):
+        results_by_persona = {}
+        for p in personas:
+            with st.spinner(f"Querying as {p}…"):
+                resp = query_pipeline.ask_question(
+                    session, ctx, proof_question, None,
+                    session_factory=session_factory,
+                    persona=p,
+                )
+                results_by_persona[p] = resp
+
+        proof_cols = st.columns(3)
+        for i, p in enumerate(personas):
+            r = results_by_persona[p]
+            with proof_cols[i]:
+                st.markdown(f"**{p}**")
+                st.write(r.get("answer", "N/A"))
+                agents = r.get("agents_consulted", [])
+                if agents:
+                    st.caption(f"Via: {', '.join(agents)}")
+                res = r.get("result", [])
+                if res:
+                    st.dataframe(pd.DataFrame(res), hide_index=True, use_container_width=True)
+
+        # Compare
+        answers = [results_by_persona[p].get("answer", "") for p in personas]
+        if len(set(answers)) == 1:
+            st.success("All 3 personas returned the SAME answer. Governed consistency confirmed.")
+        else:
+            st.warning("Answers differ — check semantic view coverage.")
+
+
 if page == "Onboard data":
     render_onboarding()
-else:
+elif page == "Dashboard":
     render_dashboard()
+else:
+    render_sc_command_center()

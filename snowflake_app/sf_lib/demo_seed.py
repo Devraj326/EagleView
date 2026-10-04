@@ -13,11 +13,17 @@ logger = logging.getLogger("app.demo_seed")
 DEMO_DATA_DIR = Path(__file__).resolve().parent.parent / "demo_data"
 
 DEMO_FILES = [
+    ("suppliers.csv", "Suppliers"),
+    ("plants.csv", "Plants"),
+    ("parts.csv", "Parts"),
     ("customers.csv", "Customers"),
     ("products.csv", "Products"),
     ("orders.csv", "Orders"),
     ("payments.csv", "Payments"),
     ("deliveries.csv", "Deliveries"),
+    ("purchase_orders.csv", "Purchase Orders"),
+    ("inbound_shipments.csv", "Inbound Shipments"),
+    ("inventory_snapshots.csv", "Inventory Snapshots"),
 ]
 
 

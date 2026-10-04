@@ -8,11 +8,16 @@ import type { ChatTurn, ReadyDomain } from "../lib/types";
 import { AgentLogPanel } from "./OnboardingPage";
 
 const SUGGESTIONS = [
-  "What was our total revenue last month?",
-  "Which products are below their reorder level?",
-  "Show me the top 10 customers by spending.",
+  "What is the overall on-time delivery percentage?",
+  "Show me the supplier scorecard ranking.",
+  "What is the fill rate by plant?",
+  "What is the landed cost by commodity group?",
   "Which deliveries were delayed?",
+  "Give me a supply chain health summary.",
 ];
+
+const PERSONAS = ["Planning", "Procurement", "Logistics"] as const;
+type Persona = (typeof PERSONAS)[number];
 
 let turnCounter = 0;
 function nextId() {
@@ -27,6 +32,7 @@ export function DashboardPage() {
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
   const [agentLog, setAgentLog] = useState<string[]>([]);
+  const [persona, setPersona] = useState<Persona | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,7 +60,7 @@ export function DashboardPage() {
     ]);
 
     try {
-      const response = await api.ask(question, sessionId);
+      const response = await api.ask(question, sessionId, persona);
       setSessionId(response.session_id);
       if (response.agent_log?.length) setAgentLog((prev) => [...prev, ...response.agent_log]);
       setTurns((prev) =>
@@ -117,6 +123,26 @@ export function DashboardPage() {
               New conversation
             </button>
           )}
+
+          <div style={{ marginTop: 20 }}>
+            <h3 style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 8 }}>PERSONA</h3>
+            <select
+              className="input"
+              style={{ fontSize: 13, padding: "8px 10px", width: "100%" }}
+              value={persona || ""}
+              onChange={(e) => setPersona((e.target.value as Persona) || null)}
+            >
+              <option value="">Default (no persona)</option>
+              {PERSONAS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+            {persona && (
+              <p style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>
+                Supply chain metric questions will be answered via Cortex Analyst with {persona} perspective.
+              </p>
+            )}
+          </div>
 
           <div style={{ marginTop: 20 }}>
             <AgentLogPanel log={agentLog} onClear={() => setAgentLog([])} />

@@ -1,0 +1,607 @@
+﻿name: SC_SUPPLY_CHAIN
+description: >
+  Supply Chain Ontology â€” governed semantic view encoding the entity-relationship
+  model (Supplier â†’ Part â†’ Plant â†’ Shipment â†’ Order â†’ Customer) with canonical
+  metric definitions.  All verified queries return deterministic SQL so that the
+  same business question produces the same answer regardless of who asks it.
+
+tables:
+  # â”€â”€ base entity tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  - name: SUPPLIER_DATA
+    description: Suppliers / vendors that provide parts and materials.
+    base_table:
+      database: EGLE_VIEW
+      schema: "DEMO_A"
+      table: SUPPLIER_DATA
+    dimensions:
+      - name: supplier_id
+        description: Unique supplier identifier
+        expr: SUPPLIER_ID
+        data_type: VARCHAR
+        unique: true
+      - name: supplier_name
+        description: Legal name of the supplier
+        expr: SUPPLIER_NAME
+        data_type: VARCHAR
+      - name: supplier_country
+        description: Country where the supplier is headquartered
+        expr: COUNTRY
+        data_type: VARCHAR
+      - name: contract_tier
+        description: "Contract classification: Strategic, Preferred, Approved, Probationary"
+        expr: CONTRACT_TIER
+        data_type: VARCHAR
+    measures:
+      - name: contracted_lead_time_days
+        description: Contractual lead time in days
+        expr: LEAD_TIME_DAYS
+        data_type: NUMBER
+        default_aggregation: avg
+      - name: reliability_score
+        description: Supplier reliability score (0-1)
+        expr: RELIABILITY_SCORE
+        data_type: NUMBER
+        default_aggregation: avg
+
+  - name: PLANT_DATA
+    description: Manufacturing plants, distribution centers, and 3PL warehouses.
+    base_table:
+      database: EGLE_VIEW
+      schema: "DEMO_A"
+      table: PLANT_DATA
+    dimensions:
+      - name: plant_id
+        description: Unique plant/warehouse identifier
+        expr: PLANT_ID
+        data_type: VARCHAR
+        unique: true
+      - name: plant_name
+        description: Descriptive name of the facility
+        expr: PLANT_NAME
+        data_type: VARCHAR
+      - name: plant_city
+        description: City where the plant is located
+        expr: CITY
+        data_type: VARCHAR
+      - name: plant_country
+        description: Country of the plant
+        expr: COUNTRY
+        data_type: VARCHAR
+      - name: plant_type
+        description: "Facility type: Manufacturing, Distribution Center, 3PL Warehouse"
+        expr: PLANT_TYPE
+        data_type: VARCHAR
+    measures:
+      - name: capacity_units
+        description: Total capacity in standard units
+        expr: CAPACITY_UNITS
+        data_type: NUMBER
+        default_aggregation: sum
+
+  - name: PARTS_DATA
+    description: Parts and components sourced from suppliers.
+    base_table:
+      database: EGLE_VIEW
+      schema: "DEMO_A"
+      table: PARTS_DATA
+    dimensions:
+      - name: part_id
+        description: Unique part/component identifier
+        expr: PART_ID
+        data_type: VARCHAR
+        unique: true
+      - name: part_name
+        description: Descriptive part name
+        expr: PART_NAME
+        data_type: VARCHAR
+      - name: commodity_group
+        description: "Commodity classification: Electronics, Mechanical, Packaging, etc."
+        expr: COMMODITY_GROUP
+        data_type: VARCHAR
+      - name: hs_code
+        description: Harmonized System tariff code
+        expr: HS_CODE
+        data_type: VARCHAR
+      - name: part_supplier_id
+        description: Supplier who provides this part
+        expr: SUPPLIER_ID
+        data_type: VARCHAR
+    measures:
+      - name: part_unit_cost
+        description: Standard unit cost of the part
+        expr: UNIT_COST
+        data_type: NUMBER
+        default_aggregation: avg
+      - name: part_weight_kg
+        description: Weight per unit in kilograms
+        expr: WEIGHT_KG
+        data_type: NUMBER
+        default_aggregation: avg
+
+  - name: PURCHASE_ORDER_DATA
+    description: Purchase orders from plants to suppliers for parts.
+    base_table:
+      database: EGLE_VIEW
+      schema: "DEMO_A"
+      table: PURCHASE_ORDER_DATA
+    dimensions:
+      - name: po_id
+        description: Unique purchase order identifier
+        expr: PO_ID
+        data_type: VARCHAR
+        unique: true
+      - name: po_supplier_id
+        description: Supplier fulfilling this PO
+        expr: SUPPLIER_ID
+        data_type: VARCHAR
+      - name: po_part_id
+        description: Part being ordered
+        expr: PART_ID
+        data_type: VARCHAR
+      - name: po_plant_id
+        description: Destination plant/warehouse
+        expr: PLANT_ID
+        data_type: VARCHAR
+      - name: po_status
+        description: "PO status: Received, In Transit"
+        expr: PO_STATUS
+        data_type: VARCHAR
+    time_dimensions:
+      - name: po_order_date
+        description: Date the PO was placed
+        expr: ORDER_DATE
+        data_type: TIMESTAMP_NTZ
+      - name: po_promised_date
+        description: Supplier-promised delivery date
+        expr: PROMISED_DATE
+        data_type: TIMESTAMP_NTZ
+      - name: po_receipt_date
+        description: Actual receipt date at the plant
+        expr: RECEIPT_DATE
+        data_type: TIMESTAMP_NTZ
+    measures:
+      - name: qty_ordered
+        description: Quantity ordered on the PO
+        expr: QTY_ORDERED
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: qty_received
+        description: Quantity actually received
+        expr: QTY_RECEIVED
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: po_unit_cost
+        description: Unit cost on the PO
+        expr: UNIT_COST
+        data_type: NUMBER
+        default_aggregation: avg
+      - name: po_freight_cost
+        description: Freight/shipping cost for this PO
+        expr: FREIGHT_COST
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: po_duty_pct
+        description: Import duty percentage
+        expr: DUTY_PCT
+        data_type: NUMBER
+        default_aggregation: avg
+      - name: po_insurance_cost
+        description: Insurance cost for this PO
+        expr: INSURANCE_COST
+        data_type: NUMBER
+        default_aggregation: sum
+
+  - name: ORDER_DATA
+    description: Customer sales orders fulfilled from plants.
+    base_table:
+      database: EGLE_VIEW
+      schema: "DEMO_A"
+      table: ORDER_DATA
+    dimensions:
+      - name: order_id
+        description: Unique customer order identifier
+        expr: ORDER_ID
+        data_type: VARCHAR
+        unique: true
+      - name: order_customer_id
+        description: Customer who placed the order
+        expr: CUST_ID
+        data_type: VARCHAR
+      - name: order_product_id
+        description: Product ordered
+        expr: PROD_ID
+        data_type: VARCHAR
+      - name: order_plant_id
+        description: Plant fulfilling the order
+        expr: PLANT_ID
+        data_type: VARCHAR
+      - name: order_status
+        description: "Order status: Placed, Packed, Shipped, In Transit, Delivered, Returned, Cancelled"
+        expr: ORDER_STATUS
+        data_type: VARCHAR
+      - name: payment_status
+        description: "Payment status: Pending, Paid, Failed, Refunded"
+        expr: PAYMENT_STATUS
+        data_type: VARCHAR
+    time_dimensions:
+      - name: order_date
+        description: Date the order was placed
+        expr: ORDER_DT
+        data_type: TIMESTAMP_NTZ
+      - name: promised_delivery_date
+        description: Date delivery was promised to the customer
+        expr: PROMISED_DELIVERY_DT
+        data_type: TIMESTAMP_NTZ
+    measures:
+      - name: order_quantity
+        description: Quantity ordered by customer
+        expr: QTY
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: requested_qty
+        description: Quantity originally requested
+        expr: REQUESTED_QTY
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: shipped_qty
+        description: Quantity actually shipped
+        expr: SHIPPED_QTY
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: order_unit_price
+        description: Unit selling price
+        expr: UNIT_PRICE
+        data_type: NUMBER
+        default_aggregation: avg
+      - name: order_total_amount
+        description: Total order amount including tax and discount
+        expr: TOTAL_AMT
+        data_type: NUMBER
+        default_aggregation: sum
+
+  - name: CUSTOMER_DATA
+    description: End customers who receive orders.
+    base_table:
+      database: EGLE_VIEW
+      schema: "DEMO_A"
+      table: CUSTOMER_DATA
+    dimensions:
+      - name: customer_id
+        description: Unique customer identifier
+        expr: CUST_ID
+        data_type: VARCHAR
+        unique: true
+      - name: customer_name
+        description: Customer full name
+        expr: FULL_NAME
+        data_type: VARCHAR
+      - name: customer_city
+        description: Customer city
+        expr: CITY
+        data_type: VARCHAR
+      - name: customer_segment
+        description: "Customer tier: Platinum, Gold, Silver, Bronze"
+        expr: SEGMENT
+        data_type: VARCHAR
+      - name: customer_status
+        description: "Account status: Active, Inactive, Suspended"
+        expr: ACCT_STATUS
+        data_type: VARCHAR
+
+  - name: DELIVERY_DATA
+    description: Outbound deliveries from plant to customer.
+    base_table:
+      database: EGLE_VIEW
+      schema: "DEMO_A"
+      table: DELIVERY_DATA
+    dimensions:
+      - name: delivery_order_id
+        description: Order being delivered
+        expr: ORDER_ID
+        data_type: VARCHAR
+      - name: delivery_customer_id
+        description: Customer receiving the delivery
+        expr: CUST_ID
+        data_type: VARCHAR
+      - name: delivery_partner
+        description: Logistics partner handling delivery
+        expr: PARTNER
+        data_type: VARCHAR
+      - name: delivery_status
+        description: "Delivery status: Pending, Picked Up, In Transit, Out for Delivery, Delivered, Delayed, Returned to Sender"
+        expr: DELIVERY_STATUS
+        data_type: VARCHAR
+      - name: origin_city
+        description: Shipment origin city
+        expr: PICKUP_LOC
+        data_type: VARCHAR
+      - name: destination_city
+        description: Delivery destination city
+        expr: DESTINATION
+        data_type: VARCHAR
+    time_dimensions:
+      - name: estimated_delivery_date
+        description: Estimated delivery date
+        expr: ETA_DT
+        data_type: TIMESTAMP_NTZ
+      - name: actual_delivery_date
+        description: Actual delivery date (null if not yet delivered)
+        expr: ACTUAL_DELIVERY_DT
+        data_type: TIMESTAMP_NTZ
+      - name: promised_delivery_dt
+        description: Delivery date promised to the customer
+        expr: PROMISED_DELIVERY_DT
+        data_type: TIMESTAMP_NTZ
+    measures:
+      - name: delivery_freight_cost
+        description: Last-mile delivery freight cost
+        expr: FREIGHT_COST
+        data_type: NUMBER
+        default_aggregation: sum
+
+  # â”€â”€ derived metric tables (dynamic tables) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  - name: SC_SUPPLIER_SCORECARD
+    description: Pre-computed supplier performance scorecard with OTD%, fill rate, lead time, and landed cost.
+    base_table:
+      database: EGLE_VIEW
+      schema: "DEMO_A"
+      table: SC_SUPPLIER_SCORECARD
+    dimensions:
+      - name: scorecard_supplier_id
+        description: Supplier being scored
+        expr: SUPPLIER_ID
+        data_type: VARCHAR
+      - name: scorecard_supplier_name
+        description: Supplier name
+        expr: SUPPLIER_NAME
+        data_type: VARCHAR
+      - name: scorecard_country
+        description: Supplier country
+        expr: COUNTRY
+        data_type: VARCHAR
+      - name: scorecard_contract_tier
+        description: Contract tier
+        expr: CONTRACT_TIER
+        data_type: VARCHAR
+    measures:
+      - name: supplier_total_pos
+        description: Total purchase orders for this supplier
+        expr: TOTAL_POS
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: supplier_otd_pct
+        description: "Canonical metric: Supplier on-time delivery percentage"
+        expr: ON_TIME_DELIVERY_PCT
+        data_type: NUMBER
+        default_aggregation: avg
+      - name: supplier_fill_rate_pct
+        description: "Canonical metric: Supplier full-fill rate percentage"
+        expr: FULL_FILL_RATE_PCT
+        data_type: NUMBER
+        default_aggregation: avg
+      - name: supplier_actual_lead_days
+        description: "Canonical metric: Average actual lead time in days"
+        expr: ACTUAL_AVG_LEAD_DAYS
+        data_type: NUMBER
+        default_aggregation: avg
+      - name: supplier_avg_landed_cost
+        description: "Canonical metric: Average landed cost per unit"
+        expr: AVG_LANDED_COST_PER_UNIT
+        data_type: NUMBER
+        default_aggregation: avg
+
+# â”€â”€ relationships (the ontology graph) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+relationships:
+  - name: part_to_supplier
+    left_table: PARTS_DATA
+    right_table: SUPPLIER_DATA
+    relationship_columns:
+      - left_column: part_supplier_id
+        right_column: supplier_id
+    join_type: many_to_one
+    description: Each part is sourced from one supplier
+
+  - name: po_to_supplier
+    left_table: PURCHASE_ORDER_DATA
+    right_table: SUPPLIER_DATA
+    relationship_columns:
+      - left_column: po_supplier_id
+        right_column: supplier_id
+    join_type: many_to_one
+    description: Each PO is placed with one supplier
+
+  - name: po_to_part
+    left_table: PURCHASE_ORDER_DATA
+    right_table: PARTS_DATA
+    relationship_columns:
+      - left_column: po_part_id
+        right_column: part_id
+    join_type: many_to_one
+    description: Each PO line orders one part
+
+  - name: po_to_plant
+    left_table: PURCHASE_ORDER_DATA
+    right_table: PLANT_DATA
+    relationship_columns:
+      - left_column: po_plant_id
+        right_column: plant_id
+    join_type: many_to_one
+    description: Each PO ships to one plant
+
+  - name: order_to_customer
+    left_table: ORDER_DATA
+    right_table: CUSTOMER_DATA
+    relationship_columns:
+      - left_column: order_customer_id
+        right_column: customer_id
+    join_type: many_to_one
+    description: Each order is placed by one customer
+
+  - name: order_to_plant
+    left_table: ORDER_DATA
+    right_table: PLANT_DATA
+    relationship_columns:
+      - left_column: order_plant_id
+        right_column: plant_id
+    join_type: many_to_one
+    description: Each order is fulfilled from one plant
+
+  - name: delivery_to_order
+    left_table: DELIVERY_DATA
+    right_table: ORDER_DATA
+    relationship_columns:
+      - left_column: delivery_order_id
+        right_column: order_id
+    join_type: many_to_one
+    description: Each delivery is for one order
+
+  - name: delivery_to_customer
+    left_table: DELIVERY_DATA
+    right_table: CUSTOMER_DATA
+    relationship_columns:
+      - left_column: delivery_customer_id
+        right_column: customer_id
+    join_type: many_to_one
+    description: Each delivery goes to one customer
+
+  - name: scorecard_to_supplier
+    left_table: SC_SUPPLIER_SCORECARD
+    right_table: SUPPLIER_DATA
+    relationship_columns:
+      - left_column: scorecard_supplier_id
+        right_column: supplier_id
+    join_type: many_to_one
+    description: Each scorecard row corresponds to one supplier
+
+# â”€â”€ verified queries (canonical metrics â€” same SQL every time) â”€â”€â”€â”€â”€â”€â”€â”€
+verified_queries:
+  - name: on_time_delivery_overall
+    question: "What is the overall on-time delivery percentage?"
+    sql: >
+      SELECT
+        ROUND(SUM(CASE WHEN d.ACTUAL_DELIVERY_DT::TIMESTAMP_NTZ <= o.PROMISED_DELIVERY_DT::TIMESTAMP_NTZ THEN 1 ELSE 0 END)
+              * 100.0 / NULLIF(COUNT(*), 0), 2) AS on_time_delivery_pct,
+        COUNT(*) AS total_deliveries
+      FROM DEMO_A.DELIVERY_DATA d
+      JOIN DEMO_A.ORDER_DATA o ON d.ORDER_ID = o.ORDER_ID
+      WHERE d.ACTUAL_DELIVERY_DT IS NOT NULL AND d.ACTUAL_DELIVERY_DT != ''
+    verified_at: "2026-10-04"
+
+  - name: on_time_delivery_by_carrier
+    question: "What is on-time delivery percentage by carrier / delivery partner?"
+    sql: >
+      SELECT
+        d.PARTNER AS carrier,
+        ROUND(SUM(CASE WHEN d.ACTUAL_DELIVERY_DT::TIMESTAMP_NTZ <= o.PROMISED_DELIVERY_DT::TIMESTAMP_NTZ THEN 1 ELSE 0 END)
+              * 100.0 / NULLIF(COUNT(*), 0), 2) AS otd_pct,
+        COUNT(*) AS total_deliveries
+      FROM DEMO_A.DELIVERY_DATA d
+      JOIN DEMO_A.ORDER_DATA o ON d.ORDER_ID = o.ORDER_ID
+      WHERE d.ACTUAL_DELIVERY_DT IS NOT NULL AND d.ACTUAL_DELIVERY_DT != ''
+      GROUP BY d.PARTNER
+      ORDER BY otd_pct DESC
+    verified_at: "2026-10-04"
+
+  - name: fill_rate_overall
+    question: "What is the overall fill rate?"
+    sql: >
+      SELECT
+        ROUND(SUM(SHIPPED_QTY) * 100.0 / NULLIF(SUM(REQUESTED_QTY), 0), 2) AS fill_rate_pct,
+        SUM(REQUESTED_QTY) AS total_requested,
+        SUM(SHIPPED_QTY) AS total_shipped
+      FROM DEMO_A.ORDER_DATA
+    verified_at: "2026-10-04"
+
+  - name: fill_rate_by_plant
+    question: "What is the fill rate by plant?"
+    sql: >
+      SELECT
+        o.PLANT_ID,
+        p.PLANT_NAME,
+        ROUND(SUM(o.SHIPPED_QTY) * 100.0 / NULLIF(SUM(o.REQUESTED_QTY), 0), 2) AS fill_rate_pct
+      FROM DEMO_A.ORDER_DATA o
+      JOIN DEMO_A.PLANT_DATA p ON o.PLANT_ID = p.PLANT_ID
+      GROUP BY o.PLANT_ID, p.PLANT_NAME
+      ORDER BY fill_rate_pct DESC
+    verified_at: "2026-10-04"
+
+  - name: days_of_inventory_by_plant
+    question: "What are the days of inventory by plant?"
+    sql: >
+      SELECT
+        ip.PLANT_ID,
+        p.PLANT_NAME,
+        ROUND(AVG(ip.DAYS_OF_INVENTORY), 1) AS avg_days_of_inventory,
+        SUM(ip.QTY_ON_HAND) AS total_on_hand
+      FROM DEMO_A.SC_INVENTORY_POSITION ip
+      JOIN DEMO_A.PLANT_DATA p ON ip.PLANT_ID = p.PLANT_ID
+      WHERE ip.DAYS_OF_INVENTORY IS NOT NULL
+      GROUP BY ip.PLANT_ID, p.PLANT_NAME
+      ORDER BY avg_days_of_inventory
+    verified_at: "2026-10-04"
+
+  - name: landed_cost_by_supplier
+    question: "What is the average landed cost per unit by supplier?"
+    sql: >
+      SELECT
+        lc.SUPPLIER_ID,
+        s.SUPPLIER_NAME,
+        s.COUNTRY,
+        ROUND(AVG(lc.LANDED_COST_PER_UNIT), 2) AS avg_landed_cost_per_unit,
+        SUM(lc.TOTAL_LANDED_COST) AS total_landed_cost,
+        COUNT(*) AS po_count
+      FROM DEMO_A.SC_LANDED_COST lc
+      JOIN DEMO_A.SUPPLIER_DATA s ON lc.SUPPLIER_ID = s.SUPPLIER_ID
+      GROUP BY lc.SUPPLIER_ID, s.SUPPLIER_NAME, s.COUNTRY
+      ORDER BY avg_landed_cost_per_unit
+    verified_at: "2026-10-04"
+
+  - name: landed_cost_by_commodity
+    question: "What is the landed cost by commodity group?"
+    sql: >
+      SELECT
+        pt.COMMODITY_GROUP,
+        ROUND(AVG(lc.LANDED_COST_PER_UNIT), 2) AS avg_landed_cost_per_unit,
+        SUM(lc.TOTAL_LANDED_COST) AS total_landed_cost
+      FROM DEMO_A.SC_LANDED_COST lc
+      JOIN DEMO_A.PARTS_DATA pt ON lc.PART_ID = pt.PART_ID
+      GROUP BY pt.COMMODITY_GROUP
+      ORDER BY total_landed_cost DESC
+    verified_at: "2026-10-04"
+
+  - name: supplier_scorecard_ranking
+    question: "Rank suppliers by overall performance / show supplier scorecard"
+    sql: >
+      SELECT
+        SUPPLIER_NAME,
+        COUNTRY,
+        CONTRACT_TIER,
+        TOTAL_POS,
+        ON_TIME_DELIVERY_PCT,
+        FULL_FILL_RATE_PCT,
+        ACTUAL_AVG_LEAD_DAYS,
+        CONTRACTED_LEAD_DAYS,
+        AVG_LANDED_COST_PER_UNIT
+      FROM DEMO_A.SC_SUPPLIER_SCORECARD
+      WHERE TOTAL_POS IS NOT NULL
+      ORDER BY ON_TIME_DELIVERY_PCT DESC
+    verified_at: "2026-10-04"
+
+  - name: supply_chain_health_summary
+    question: "Give me a supply chain health summary / What are the key supply chain KPIs?"
+    sql: >
+      SELECT
+        (SELECT ROUND(SUM(CASE WHEN d.ACTUAL_DELIVERY_DT::TIMESTAMP_NTZ <= o.PROMISED_DELIVERY_DT::TIMESTAMP_NTZ THEN 1 ELSE 0 END)
+                * 100.0 / NULLIF(COUNT(*), 0), 2)
+         FROM DEMO_A.DELIVERY_DATA d
+         JOIN DEMO_A.ORDER_DATA o ON d.ORDER_ID = o.ORDER_ID
+         WHERE d.ACTUAL_DELIVERY_DT IS NOT NULL AND d.ACTUAL_DELIVERY_DT != '') AS on_time_delivery_pct,
+        (SELECT ROUND(SUM(SHIPPED_QTY) * 100.0 / NULLIF(SUM(REQUESTED_QTY), 0), 2)
+         FROM DEMO_A.ORDER_DATA) AS fill_rate_pct,
+        (SELECT ROUND(AVG(DAYS_OF_INVENTORY), 1)
+         FROM DEMO_A.SC_INVENTORY_POSITION
+         WHERE DAYS_OF_INVENTORY IS NOT NULL) AS avg_days_of_inventory,
+        (SELECT ROUND(AVG(LANDED_COST_PER_UNIT), 2)
+         FROM DEMO_A.SC_LANDED_COST) AS avg_landed_cost_per_unit
+    verified_at: "2026-10-04"
+
