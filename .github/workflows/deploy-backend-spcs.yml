@@ -1,0 +1,49 @@
+name: Build and push backend image to Snowflake SPCS
+
+# Builds backend/Dockerfile (repo root as build context, since the app imports
+# snowflake_app/sf_lib as a sibling directory) and pushes it to the Snowflake
+# image repository EGLE_VIEW.PUBLIC.EGLEVIEW_REPO, so it can be run by
+# EGLEVIEW_BACKEND_POOL via Snowpark Container Services.
+#
+# Requires two secrets in the "Production" environment (Settings -> Environments
+# -> Production -> Environment secrets):
+#   SNOWFLAKE_USER     - the Snowflake user to authenticate the registry push as
+#   SNOWFLAKE_PASSWORD - that user's password
+# Never commit these values - GitHub injects them at run time only.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "snowflake_app/sf_lib/**"
+      - ".github/workflows/deploy-backend-spcs.yml"
+
+env:
+  REGISTRY: bwmuumn-jk35447.registry.snowflakecomputing.com
+  IMAGE_PATH: egle_view/public/egleview_repo/egleview-backend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Snowflake image registry
+        run: |
+          echo "${{ secrets.SNOWFLAKE_PASSWORD }}" | docker login "$REGISTRY" \
+            -u "${{ secrets.SNOWFLAKE_USER }}" --password-stdin
+
+      - name: Build image
+        run: |
+          docker build -f backend/Dockerfile \
+            -t "$REGISTRY/$IMAGE_PATH:latest" \
+            -t "$REGISTRY/$IMAGE_PATH:${{ github.sha }}" \
+            .
+
+      - name: Push image
+        run: |
+          docker push "$REGISTRY/$IMAGE_PATH:latest"
+          docker push "$REGISTRY/$IMAGE_PATH:${{ github.sha }}"
