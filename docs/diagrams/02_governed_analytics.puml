@@ -1,0 +1,63 @@
+@startuml
+title EagleView — Part 2: Governed Analytics (Cortex Analyst Path)
+caption Metric questions → Semantic View → Verified Query → Same answer every time
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing true
+skinparam defaultFontName Arial
+skinparam ParticipantPadding 20
+skinparam BoxPadding 14
+skinparam sequence {
+  ArrowColor #2F80ED
+  ActorBorderColor #5B9BD5
+  ActorBackgroundColor #EAF3FF
+  ParticipantBorderColor #8AA9C7
+  ParticipantBackgroundColor #F5F9FE
+  LifeLineBorderColor #B9D3EA
+  LifeLineBackgroundColor #F9FCFF
+  GroupBorderColor #6B6B6B
+  GroupBackgroundColor #FFFFFF
+  ReferenceBackgroundColor #FFF8DC
+  ReferenceBorderColor #C8B458
+  DividerBackgroundColor #FFFFFF
+  DividerBorderColor #666666
+}
+
+
+actor "Business User\n(Planning / Procurement\n/ Logistics)" as user
+participant "React Frontend\n(Vercel)" as ui
+participant "FastAPI Backend\n(Render)" as api
+database "Snowflake\nEGLE_VIEW" as sf
+participant "Cortex Analyst\nSemantic View" as analyst
+
+user -> ui : "What is the on-time delivery % by carrier?"
+ui -> api : POST /api/query\n{question, session_id, persona: "Procurement"}
+api -> api : **Keyword detection**\nMatches "on-time delivery" → governed path
+
+api -> analyst : **CORTEX.ANALYST_RUN()**\nSemantic View: SC_SUPPLY_CHAIN\nPersona hint: "Procurement perspective"
+
+note right of analyst
+  **Semantic View: SC_SUPPLY_CHAIN**
+  8 entity tables, 9 relationships
+  9 verified queries with canonical SQL
+
+  Canonical Metrics:
+  · OTD% = delivered_on_time / total × 100
+  · Fill Rate = shipped / requested × 100
+  · DOI = qty_on_hand / avg_daily_usage
+  · Landed Cost = unit + freight + duty + insurance
+
+  → Same SQL every time,
+    regardless of persona
+end note
+
+analyst -> sf : Execute verified query SQL\n(deterministic, governed)
+sf --> analyst : Query results
+analyst --> api : SQL used + rows + answer text
+
+api -> sf : Save response in APP_CONVERSATIONS
+api --> ui : {answer, result rows, sql,\nagents_consulted: ["cortex_analyst"],\nsummary: {governed_by: "SC_SUPPLY_CHAIN",\npersona: "Procurement"}}
+
+ui --> user : **Governed Answer**\nOTD% by carrier table + bar chart\n"Routed via: cortex_analyst (semantic view)"
+
+@enduml

@@ -1,0 +1,69 @@
+@startuml
+title EagleView — Part 4: Persona Consistency Proof & KPI Dashboard
+caption Same metric → Same answer across Planning, Procurement, Logistics
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing true
+skinparam defaultFontName Arial
+skinparam ParticipantPadding 20
+skinparam BoxPadding 14
+skinparam sequence {
+  ArrowColor #2F80ED
+  ActorBorderColor #5B9BD5
+  ActorBackgroundColor #EAF3FF
+  ParticipantBorderColor #8AA9C7
+  ParticipantBackgroundColor #F5F9FE
+  LifeLineBorderColor #B9D3EA
+  LifeLineBackgroundColor #F9FCFF
+  GroupBorderColor #6B6B6B
+  GroupBackgroundColor #FFFFFF
+  ReferenceBackgroundColor #FFF8DC
+  ReferenceBorderColor #C8B458
+  DividerBackgroundColor #FFFFFF
+  DividerBorderColor #666666
+}
+
+
+actor "Business User\n(Planning / Procurement\n/ Logistics)" as user
+participant "React Frontend\n(Vercel)" as ui
+participant "FastAPI Backend\n(Render)" as api
+database "Snowflake\nEGLE_VIEW" as sf
+participant "Cortex Analyst\nSemantic View" as analyst
+
+== Persona Consistency Proof ==
+
+user -> ui : **SC Command Center** page\nRun consistency test
+ui -> api : Same question × 3 personas
+
+par Planning, Procurement, Logistics
+  api -> analyst : "What is overall OTD%" (Planning)
+  analyst --> api : 78.87%
+  api -> analyst : "What is overall OTD%" (Procurement)
+  analyst --> api : 78.87%
+  api -> analyst : "What is overall OTD%" (Logistics)
+  analyst --> api : 78.87%
+end
+
+api --> ui : 3 identical results side-by-side
+ui --> user : **"All 3 personas returned SAME answer.\nGoverned consistency confirmed."**
+
+== Supply Chain KPI Dashboard ==
+
+user -> ui : Open SC Command Center
+ui -> sf : Query 4 dynamic tables directly
+
+note over sf
+  **Live KPI Ribbon**
+  OTD% = 78.87% (SC_OTD_METRICS)
+  Fill Rate = 92.10% (SC_FILL_RATE)
+  DOI = 3.3 days (SC_INVENTORY_POSITION)
+  Landed Cost = ₹2,837 (SC_LANDED_COST)
+
+  Auto-refresh via TARGET_LAG = 1 hour
+  New data → dynamic tables update → KPIs update
+end note
+
+sf --> ui : KPI values
+ui --> user : 4 metric cards + governed chat + persona selector
+
+@enduml

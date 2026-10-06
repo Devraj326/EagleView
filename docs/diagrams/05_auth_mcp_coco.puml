@@ -1,0 +1,106 @@
+@startuml
+title EagleView — Part 5: Auth, MCP, Streamlit & CoCo
+caption RBAC isolation, MCP integration, Streamlit app, CoCo usage
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing true
+skinparam defaultFontName Arial
+skinparam ParticipantPadding 20
+skinparam BoxPadding 14
+skinparam sequence {
+  ArrowColor #2F80ED
+  ActorBorderColor #5B9BD5
+  ActorBackgroundColor #EAF3FF
+  ParticipantBorderColor #8AA9C7
+  ParticipantBackgroundColor #F5F9FE
+  LifeLineBorderColor #B9D3EA
+  LifeLineBackgroundColor #F9FCFF
+  GroupBorderColor #6B6B6B
+  GroupBackgroundColor #FFFFFF
+  ReferenceBackgroundColor #FFF8DC
+  ReferenceBorderColor #C8B458
+  DividerBackgroundColor #FFFFFF
+  DividerBorderColor #666666
+}
+
+
+actor "Business User" as user
+participant "React Frontend\n(Vercel)" as ui
+participant "FastAPI Backend\n(Render)" as api
+participant "Snowpark Bridge\nsf_lib pipeline" as bridge
+database "Snowflake\nEGLE_VIEW" as sf
+participant "Cortex Analyst\nSemantic View" as analyst
+participant "12 Domain\nCortex Agents" as agents
+
+== Authentication & RBAC Isolation ==
+
+user -> ui : Google sign-in or demo login
+ui -> api : POST /api/auth/google or /demo
+api --> ui : Application JWT
+ui -> api : Bearer JWT on every request
+api -> bridge : Resolve user → schema mapping
+bridge -> sf : All queries scoped to\nuser's own schema (DEMO_A / DEMO_B)
+
+note over sf
+  **Per-user schema isolation**
+  Each user's data, metadata, and
+  domain tables live in their own schema.
+  EXECUTE AS CALLER for Streamlit.
+  SQL validator enforces db/schema/table scope.
+end note
+
+== MCP Server (External Tool Integration) ==
+
+participant "MCP Client\n(Claude, CoCo, etc.)" as mcp
+
+mcp -> api : **upload_data** tool\n(filename, content_base64)
+api -> bridge : Full pipeline:\nupload → analyze → auto-confirm
+bridge -> sf : Data loaded via agents
+api --> mcp : Upload result
+
+mcp -> api : **ask_question** tool\n(question, session_id)
+api -> api : Dual-path routing\n(governed or exploratory)
+api --> mcp : Answer + SQL + agents_consulted
+
+== Snowflake-Native Streamlit App ==
+
+participant "Streamlit-in-Snowflake\n3 Pages" as streamlit
+
+streamlit -> sf : **Page 1: Onboard Data**\nUpload → Orchestrator → Review → Confirm
+streamlit -> sf : **Page 2: Dashboard**\nChat interface with domain agents
+streamlit -> sf : **Page 3: SC Command Center**\nKPI ribbon + persona selector\n+ governed chat + consistency proof
+streamlit -> analyst : Metric questions → Cortex Analyst
+streamlit -> agents : Ad-hoc questions → Domain Agents
+
+== Built with CoCo ==
+
+note over ui, agents
+  **Built Entirely with Snowflake CoCo (Desktop)**
+  Planning: Architecture analysis, gap identification, ontology design
+  Development: Data gen, semantic views, dynamic tables, agents, pipeline code
+  Execution: SQL execution, data loading, sv-deploy, agent creation
+  Testing: Metric verification, agent testing, persona consistency proof
+
+  **Reusable CoCo Skills**
+  eagleview (243 lines) — full architecture context
+  sc-metrics (113 lines) — canonical metric definitions (shareable)
+
+  **CoCo Tools Used**
+  sql_execute · cortex agent-studio sv-deploy · Task subagents
+  Plan mode · Git integration · Chart visualization
+end note
+
+legend right
+  |= Convention |= Meaning |
+  | Blue solid arrow | Request or command |
+  | Dashed arrow | Response or data |
+  | Yellow note | Architecture boundary |
+  | par block | Parallel execution |
+  |= Surface |= URL |
+  | React Frontend | eagle-view-ten.vercel.app |
+  | FastAPI Backend | Render (auto-deploy) |
+  | Streamlit App | EGLE_VIEW.PUBLIC.DATAMIND |
+  | GitHub | github.com/Devraj326/EagleView |
+endlegend
+
+@enduml
