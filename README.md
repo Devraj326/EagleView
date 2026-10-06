@@ -1,10 +1,26 @@
-# EagleView — AI-Powered Supply Chain Intelligence Platform
+# EagleView — Governed Conversational Intelligence Platform
 
-> **Governed ontology + multi-agent analytics on Snowflake, built entirely with CoCo**
+> **Team Prime** | Team Leader: Anuj Sahu | Team Size: 4
 
-Supply chain data is scattered across ERP, logistics, supplier, and IoT systems with inconsistent definitions. The same question — *"What is our on-time delivery rate?"* — yields different answers across teams because each team queries different tables with different logic.
+> **Supply Chain Ontology + Multi-Agent Governed Analytics on Snowflake, built entirely with CoCo**
 
-EagleView solves this by combining **runtime flexibility** (any file, any domain, auto-discovered relationships) with **governed consistency** (semantic views, verified queries, Cortex Analyst) — so every team gets one trustworthy answer.
+---
+
+## The Problem: One Question, Three Answers
+
+Supply chain data is scattered across ERP, logistics, supplier, and IoT systems with inconsistent definitions. Without a single governed definition for key metrics like "On-Time Delivery", every department calculates its own truth:
+
+| Planning | Logistics | Finance |
+|:---:|:---:|:---:|
+| **82%** | **76%** | **79%** |
+
+### Current Pain Points
+
+1. **No Shared Metric Definitions** — Each team writes custom SQL logic, producing conflicting results for identical KPIs.
+2. **Un-governed SQL Queries** — Analysts query raw tables with zero validation on columns, joins, or formulas.
+3. **Slow Data Onboarding** — Takes weeks of manual column mapping and ETL work before new data is queryable.
+4. **Missing Single Source of Truth** — Canonical KPI definitions exist purely in static spreadsheets and tribal knowledge rather than an integrated, queryable system.
+5. **High-Risk Business Decisions** — Inconsistent metrics lead to renewing bad suppliers, overstocking inventory, and executive loss of confidence in reporting.
 
 ---
 
@@ -17,10 +33,21 @@ EagleView solves this by combining **runtime flexibility** (any file, any domain
 | Requirement | How We Address It |
 |---|---|
 | **Define the ontology** | Formal ER model: Supplier → Part → Plant → Purchase Order → Inbound Shipment → Order → Delivery → Customer |
-| **Encode as semantic views** | `SC_SUPPLY_CHAIN` semantic view with 9 verified queries for canonical metrics |
+| **Encode as semantic views** | `SC_SUPPLY_CHAIN` semantic view with 5 relationships and 9 verified queries for canonical metrics |
 | **Governed conversational analytics** | Cortex Analyst routes metric questions through the semantic view — same SQL every time |
 | **Cross-domain questions, one answer** | 12 domain agents collaborate via `AskAnotherAgent` (1-hop max) |
-| **Same metric across personas** | Built-in consistency proof: Planning, Procurement, Logistics all get identical results |
+| **Same metric across personas** | Built-in consistency proof: **Same Question x 3 Personas = Identical Answer (78.87% OTD)** |
+
+---
+
+## How It Works — 4-Step Pipeline
+
+| Step | Name | What Happens |
+|:---:|---|---|
+| **1** | **Intelligent Onboarding** | Upload CSV/Excel/JSON. AI Orchestrator splits columns across 12 domain agents. Human confirms schema proposals. MERGE upsert prevents duplicates without manual ETL. |
+| **2** | **Governed Ontology** | Semantic view (`SC_SUPPLY_CHAIN`) encodes the ER model with 5 relationships and 9 verified queries. OTD, Fill Rate, DOI & Landed Cost use locked formulas — no LLM guesses. |
+| **3** | **Dual-Path Analytics** | Canonical metric questions route through Cortex Analyst (consistent SQL). Ad-hoc questions route to 12 Cortex Agents for collaborative query writing. |
+| **4** | **Persona Consistency** | Planning, Procurement, & Logistics query identical semantic views. Built-in proof executes identical queries side-by-side across all 3 personas. |
 
 ---
 
@@ -56,7 +83,7 @@ EagleView solves this by combining **runtime flexibility** (any file, any domain
 │  INVENTORY_SNAPSHOT             SC_SUPPLIER_SCORECARD           │
 │                                                                 │
 │  Semantic View: SC_SUPPLY_CHAIN                                 │
-│  → 8 entity tables, 9 relationships, 9 verified queries        │
+│  → 9 Verified Queries, 5 Relationships                          │
 │  → Canonical metrics: OTD%, Fill Rate, DOI, Landed Cost         │
 └────────────────────────┬────────────────────────────────────────┘
                          ▼
@@ -147,7 +174,7 @@ EagleView was built **entirely with Snowflake CoCo** (Cortex Code Desktop — VS
 
 ### Development (CoCo Desktop)
 - **Synthetic data generation**: CoCo wrote `generate_sc_data.py` (287 lines) producing 11 referentially consistent CSVs (81K+ rows) with realistic supply chain patterns (80% on-time, 85% full-fill, 15% partial shipments)
-- **Semantic view authoring**: CoCo authored the `SC_SUPPLY_CHAIN` semantic view YAML (607 lines) with 8 entity tables, 9 relationships, and 9 verified queries — deployed via `cortex agent-studio sv-deploy`
+- **Semantic view authoring**: CoCo authored the `SC_SUPPLY_CHAIN` semantic view YAML (607 lines) with 8 entity tables, 5 relationships, and 9 verified queries — deployed via `cortex agent-studio sv-deploy`
 - **Dynamic table creation**: CoCo wrote and executed `CREATE DYNAMIC TABLE` DDL for 5 metric tables (OTD%, fill rate, DOI, landed cost, supplier scorecard) with `TARGET_LAG = '1 hour'`
 - **Cortex Agent setup**: CoCo wrote `create_all_agents.py` and executed it to create 24 Cortex Agents (12 primary + 12 sub) via `CREATE AGENT ... FROM SPECIFICATION`
 - **Query pipeline integration**: CoCo modified `query_pipeline.py` to add the Cortex Analyst governed path — metric questions detected by keyword matching, routed through `CORTEX.ANALYST_RUN()` against the semantic view
@@ -233,6 +260,37 @@ A built-in test fires the same metric question across all 3 personas and display
 
 ### 4. Ad-hoc Exploration
 The Dashboard page allows free-form questions. Domain agents write and execute their own SQL, can delegate across domains, and return rich answers with charts, timelines, and entity details.
+
+---
+
+## Business Impact
+
+### Before vs After EagleView
+
+| Area | Before | After EagleView |
+|---|---|---|
+| **Data Onboarding** | Weeks of manual ETL, column mapping & naming conflicts | Minutes. Upload file → AI classifies → human confirms → lands in governed tables automatically |
+| **Metric Accuracy** | 3 teams ask the same question, get 3 different answers | 1 identical answer. OTD% = 78.87% across Planning, Procurement, and Logistics |
+| **Query Access** | Only SQL-skilled analysts extract insights; business users wait days | Anyone asks in plain English. Cortex Analyst & domain agents return answers in seconds |
+| **Source Coverage** | New data sources sit in silos for weeks before becoming queryable | Automated AI flow. 11 base tables, 81K+ rows, 5 auto-refreshing metric tables live |
+
+### What This Means for the Business
+
+- **Procurement**: Stops renewing underperforming suppliers with 1 governed scorecard formula.
+- **Planning**: Stops overstocking inventory; Days of Inventory calculated from 1 dynamic table.
+- **Logistics**: Stops carrier performance debates; On-Time Delivery comes from 1 verified query.
+- **Finance & Execs**: Zero number reconciliation before board meetings; total consistency & confidence.
+
+---
+
+## Scalability & Future
+
+- **Domain Agents**: Scale from 12 to N with a single config entry (no code changes).
+- **Dynamic Tables**: Auto-refresh as data lands (`TARGET_LAG = '1 hour'`) — no cron jobs or manual triggers.
+- **Industry Ontology**: The pattern applies to Healthcare, Retail, and Financial Services — same architecture, different entity model.
+- **CoCo Skill**: `sc-metrics` lets any team adopt canonical metric definitions instantly — plug-and-play governance.
+
+> **System Consistency Proved: Same Question | Same SQL | Same Answer, Every Time**
 
 ---
 
